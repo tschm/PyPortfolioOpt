@@ -35,12 +35,14 @@ jobs:
       - name: Test with pytest
         run: |
           pytest ./tests
-      - name: Check with isort
-        run: |
-          isort --check --diff .
-      - name: Check with black
-        run: |
-          black --check --diff .
-      - name: Check with flake8
-        run: |
-          flake8 --show-source --statistics .
+
+#     will be replaced by ruff
+#      - name: Check with isort
+#        run: |
+#          isort --check --diff .
+#      - name: Check with black
+#        run: |
+#          black --check --diff .
+#      - name: Check with flake8
+#        run: |
+#          flake8 --show-source --statistics .
