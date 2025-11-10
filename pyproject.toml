@@ -75,7 +75,7 @@ dev = [
     #"ipykernel>=6.13.0",
     #"jedi>=0.18.1",
     "pytest-cov>=3.0.0",
-    "yfinance>=0.1.70",
+    #"yfinance>=0.1.70",
     "ecos>=2.0.14",
     "pre-commit==4.3.0",
 ]
