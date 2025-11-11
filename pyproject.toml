@@ -4,7 +4,7 @@ version = "1.5.6"
 description = "Financial portfolio optimization in python"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { file = "LICENSE.txt" }
+license = { file = "LICENSE" }
 authors = [
   { name = "Robert Andrew Martin", email = "martin.robertandrew@gmail.com" }
 ]
