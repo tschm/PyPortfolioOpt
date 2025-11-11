@@ -69,9 +69,10 @@ packages = ["pypfopt"]
 # Development-only dependencies (not included when installing the package)
 dev = [
     "pytest>=7.1.2",
-    #"flake8>=4.0.1",
+    "flake8>=4.0.1",
     #"jupyterlab>=3.4.2",
-    #"black>=22.3.0",
+    "black>=22.3.0",
+    "isort>=7.0.0",
     #"ipykernel>=6.13.0",
     #"jedi>=0.18.1",
     "pytest-cov>=3.0.0",
