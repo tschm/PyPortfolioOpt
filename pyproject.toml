@@ -58,12 +58,13 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["pypfopt"]
 
-#[tool.black]
-#line-length = 88
-
-#[tool.isort]
-#profile = "black"
 # will all be controlled by ruff.toml
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+
 
 [project.optional-dependencies]
 # Development-only dependencies (not included when installing the package)
