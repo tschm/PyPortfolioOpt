@@ -61,12 +61,9 @@ all_extras = [
 
 # dev - the developer dependency set, for contributors and CI
 dev = [
-    "pytest>=7.1.2",
-    "flake8>=4.0.1",
-    "black>=22.3.0",
-    "pytest-cov>=3.0.0",
-    "yfinance>=0.1.70",
-    "isort",
+    "pytest>=9.0.0",
+    "pytest-cov>=7.0.0",
+    "yfinance>=0.2.66",
 ]
 
 # notebook tests
@@ -91,8 +88,28 @@ requires = [
 [tool.setuptools.packages.find]
 exclude = ["example", "example.*", "tests", "tests.*"]
 
-[tool.black]
+[tool.ruff]
 line-length = 88
+# Keep Ruff aligned with project target version
+target-version = "py311"
+# Exclude individual files/patterns from Ruff linting/formatting
+exclude = [
+  "tests/test_imports.py",
+  "cookbook/*.ipynb",
+]
 
-[tool.isort]
-profile = "black"
+[tool.ruff.lint]
+# Keep the same selected rule sets as in ruff.toml
+select = ["F", "I"]
+
+[tool.ruff.format]
+# Formatting configuration
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint.isort]
+known-first-party = ["pypfopt"]
+combine-as-imports = true
+force-sort-within-sections = true
