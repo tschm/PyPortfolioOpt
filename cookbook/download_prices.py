@@ -48,7 +48,7 @@ if __name__ == '__main__':
         "IBM",
         "NFLX",
         "QCOM",
-        "VZ"
+        "VZ",
     ]
 
     data = yf.download(tickers, start="1990-01-01")["Close"]
