@@ -253,9 +253,6 @@ The covariance matrix encodes not just the volatility of an asset, but also how 
 ef = EfficientFrontier(mu, S, weight_bounds=(-1, 1))
 ```
 
-```result
-```
-
 - Market neutrality: for the `efficient_risk` and `efficient_return` methods, PyPortfolioOpt provides an option to form a market-neutral portfolio (i.e weights sum to zero). This is not possible for the max Sharpe portfolio and the min volatility portfolio because in those cases because they are not invariant with respect to leverage. Market neutrality requires negative weights:
 
 ```python
@@ -291,9 +288,6 @@ SBUX: 0.0330
 
 ```python
 ef = EfficientFrontier(mu, S, weight_bounds=(0, 0.1))
-```
-
-```result
 ```
 
 One issue with mean-variance optimization is that it leads to many zero-weights. While these are
@@ -419,9 +413,6 @@ PyPortfolioOpt provides a test dataset of daily returns for 20 tickers:
 
 ```python
 ['GOOG', 'AAPL', 'FB', 'BABA', 'AMZN', 'GE', 'AMD', 'WMT', 'BAC', 'GM', 'T', 'UAA', 'SHLD', 'XOM', 'RRC', 'BBY', 'MA', 'PFE', 'JPM', 'SBUX']
-```
-
-```result
 ```
 
 These tickers have been informally selected to meet several criteria:
