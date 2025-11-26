@@ -1,4 +1,5 @@
 {
+    "forkProcessing": "enabled",
     "extends": [
         "config:recommended",
         ":enablePreCommit",
