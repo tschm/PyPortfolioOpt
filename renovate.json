@@ -10,12 +10,6 @@
 
   "enabledManagers": ["pip-compile", "pip_requirements", "github-actions", "pre-commit"],
 
-  "pip": {
-    "lockFileMaintenance": {
-      "enabled": true
-    }
-  },
-
   "packageRules": [
     {
       "description": "Group scientific stack upgrades",
@@ -76,13 +70,6 @@
   ],
 
   "dependencyDashboardHeader": "Renovate updates for Jebel Quant Research repositories",
-
-  "hostRules": [
-    {
-      "matchHost": "pypi.org",
-      "respectAuth": true
-    }
-  ],
 
   "forkProcessing": "enabled"
 }
