@@ -82,5 +82,7 @@
       "matchHost": "pypi.org",
       "respectAuth": true
     }
-  ]
+  ],
+
+  "forkProcessing": "enabled"
 }
