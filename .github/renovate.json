@@ -1,5 +1,4 @@
 {
-    "forkProcessing": "enabled",
     "extends": [
         "config:recommended",
         ":enablePreCommit",
@@ -18,5 +17,6 @@
     "timezone": "Asia/Dubai",
     "schedule": [
         "before 10am on tuesday"
-    ]
+    ],
+    "forkProcessing": "enabled"
 }
