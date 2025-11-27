@@ -21,6 +21,8 @@ RESET := \033[0m
 .PHONY: install install-uv test fmt
 
 UV_INSTALL_DIR := ./bin
+TESTS_FOLDER := tests
+SOURCE_FOLDER := pypfopt
 
 ##@ Bootstrap
 install-uv: ## ensure uv (and uvx) are installed locally
@@ -39,6 +41,17 @@ install: install-uv ## install
 	@printf "${BLUE}[INFO] Installing dependencies${RESET}\n"
 	@./bin/uv sync --all-extras --frozen || { printf "${RED}[ERROR] Failed to install dependencies${RESET}\n"; exit 1; }
 
+clean: ## clean
+	@printf "${BLUE}Cleaning project...${RESET}\n"
+	# do not clean .env files
+	@git clean -d -X -f -e .env -e '.env.*'
+	@rm -rf dist build *.egg-info .coverage .pytest_cache
+	@printf "${BLUE}Removing local branches with no remote counterpart...${RESET}\n"
+	@git fetch --prune
+	@git branch -vv \
+	  | grep ': gone]' \
+	  | awk '{print $1}' \
+	  | xargs -r git branch -D 2>/dev/null || true
 
 ##@ Development and Testing
 test: install ## run all tests
@@ -49,7 +62,9 @@ test: install ## run all tests
 
 fmt: install-uv ## check the pre-commit hooks and the linting
 	@./bin/uvx pre-commit run --all-files
-	@./bin/uvx deptry .
+
+deptry: install-uv ## run deptry if pyproject.toml exists
+	@./bin/uvx deptry "${SOURCE_FOLDER}"
 
 ##@ Meta
 help: ## Display this help message
