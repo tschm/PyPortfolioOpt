@@ -1,46 +1,28 @@
-<p align="center">
-    <img width=60% src="https://github.com/PyPortfolio/PyPortfolioOpt/blob/main/media/logo_v1.png?raw=true">
-</p>
+## Welcome to PyPortfolioOpt
+
+<a href="https://pyportfolioopt.readthedocs.io/en/latest/"><img src="https://github.com/PyPortfolio/PyPortfolioOpt/blob/main/media/logo_v1.png?raw=true" width="275" align="right" /></a>
+
+PyPortfolioOpt is a library implementing portfolio optimization methods, including
+classical mean-variance optimization, Black-Litterman allocation, or shrinkage and Hierarchical Risk Parity.
+PyPortfolioOpt is inspired by scikit-learn; it is **extensive** yet easily **extensible**, for casual investors, or professionals looking for an easy prototyping tool. Whether you are a fundamentals-oriented investor who has identified a
+handful of undervalued picks, or an algorithmic trader who has a basket of
+strategies, PyPortfolioOpt can help you combine your alpha sources in a risk-efficient way.
+
 
 <!-- buttons -->
-<p align="center">
-    <a href="https://www.python.org">
-        <img src="https://img.shields.io/pypi/pyversions/PyPortfolioOpt.svg"
-            alt="python"></a> &nbsp;
-    <a href="https://www.python.org">
-        <img src="https://img.shields.io/badge/Platforms-linux--64,win--64,osx--64-orange.svg?style=flat-square"
-            alt="platforms"></a> &nbsp;
-    <a href="https://pypi.org/project/PyPortfolioOpt/">
-        <img src="https://img.shields.io/badge/pypi-v1.5.6-brightgreen.svg"
-            alt="pypi"></a> &nbsp;
-    <a href="https://opensource.org/licenses/MIT">
-        <img src="https://img.shields.io/badge/license-MIT-brightgreen.svg"
-            alt="MIT license"></a> &nbsp;
-    <a href="https://github.com/pyportfolio/pyportfolioopt/actions">
-        <img src="https://github.com/pyportfolio/pyportfolioopt/actions/workflows/main.yml/badge.svg?branch=main"
-            alt="build"></a> &nbsp;
-    <a href="https://pepy.tech/project/pyportfolioopt">
-        <img src="https://pepy.tech/badge/pyportfolioopt"
-            alt="downloads"></a> &nbsp;
-    <a href="https://mybinder.org/v2/gh/pyportfolio/pyportfolioopt/main/?filepath=cookbook">
-      <img src="https://mybinder.org/badge_logo.svg"
-            alt="binder"></a> &nbsp;
-</p>
+
+|  | **[Documentation](https://pyportfolioopt.readthedocs.io/en/latest/)** · **[Tutorials](https://github.com/pyportfolio/pyportfolioopt/tree/main/cookbook)** · **[Release Notes](https://github.com/PyPortfolio/PyPortfolioOpt/releases)** |
+|---|---|
+| **Open&#160;Source** | [![MIT](https://img.shields.io/github/license/pyportfolio/pyportfolioopt)](https://github.com/pyportfolio/pyportfolioopt/blob/master/LICENSE) [![GC.OS Sponsored](https://img.shields.io/badge/GC.OS-Sponsored%20Project-orange.svg?style=flat&colorA=0eac92&colorB=2077b4)](https://gc-os-ai.github.io/) | |
+| **Tutorials** | [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pyportfolio/pyportfolioopt/main/?filepath=cookbook) |
+| **Community** | [![!discord](https://img.shields.io/static/v1?logo=discord&label=discord&message=chat&color=lightgreen)](https://discord.gg/7uKdHfdcJG) [![!slack](https://img.shields.io/static/v1?logo=linkedin&label=LinkedIn&message=news&color=lightblue)](https://www.linkedin.com/company/pyportfolioopt/)  |
+| **CI/CD** | [![github-actions](https://img.shields.io/github/actions/workflow/status/pyportfolio/pyportfolioopt/main.yml?logo=github)](https://github.com/pyportfolio/pyportfolioopt/actions/workflows/release.yml) [![readthedocs](https://img.shields.io/readthedocs/pyportfolioopt?logo=readthedocs)](https://pyportfolioopt.readthedocs.io/en/latest/?badge=latest) |
+| **Code** |  [![!pypi](https://img.shields.io/pypi/v/pyportfolioopt?color=orange)](https://pypi.org/project/pyportfolioopt/) [![!python-versions](https://img.shields.io/pypi/pyversions/pyportfolioopt)](https://www.python.org/) [![!black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)  |
+| **Downloads** | ![PyPI - Downloads](https://img.shields.io/pypi/dw/pyportfolioopt) ![PyPI - Downloads](https://img.shields.io/pypi/dm/pyportfolioopt) [![Downloads](https://static.pepy.tech/personalized-badge/pyportfolioopt?period=total&units=international_system&left_color=grey&right_color=blue&left_text=cumulative%20(pypi))](https://pepy.tech/project/pyportfolioopt) |
+| **Citation** | [JOSS article](https://joss.theoj.org/papers/10.21105/joss.03066) |
+
 
 <!-- content -->
-
-PyPortfolioOpt is a library that implements portfolio optimization methods, including
-classical mean-variance optimization techniques and Black-Litterman allocation, as well as more
-recent developments in the field like shrinkage and Hierarchical Risk Parity.
-
-It is **extensive** yet easily **extensible**, and can be useful for either a casual investors, or a professional looking for an easy prototyping tool. Whether you are a fundamentals-oriented investor who has identified a
-handful of undervalued picks, or an algorithmic trader who has a basket of
-strategies, PyPortfolioOpt can help you combine your alpha sources
-in a risk-efficient way.
-
-**PyPortfolioOpt has been [published](https://joss.theoj.org/papers/10.21105/joss.03066) in the Journal of Open Source Software 🎉**
-
-PyPortfolioOpt is now being maintained by [Tuan Tran](https://github.com/88d52bdba0366127fffca9dfa93895).
 
 Head over to the **[documentation on ReadTheDocs](https://pyportfolioopt.readthedocs.io/en/latest/)** to get an in-depth look at the project, or check out the [cookbook](https://github.com/pyportfolio/pyportfolioopt/tree/main/cookbook) to see some examples showing the full process from downloading data to building a portfolio.
 
@@ -271,9 +253,6 @@ The covariance matrix encodes not just the volatility of an asset, but also how 
 ef = EfficientFrontier(mu, S, weight_bounds=(-1, 1))
 ```
 
-```result
-```
-
 - Market neutrality: for the `efficient_risk` and `efficient_return` methods, PyPortfolioOpt provides an option to form a market-neutral portfolio (i.e weights sum to zero). This is not possible for the max Sharpe portfolio and the min volatility portfolio because in those cases because they are not invariant with respect to leverage. Market neutrality requires negative weights:
 
 ```python
@@ -309,9 +288,6 @@ SBUX: 0.0330
 
 ```python
 ef = EfficientFrontier(mu, S, weight_bounds=(0, 0.1))
-```
-
-```result
 ```
 
 One issue with mean-variance optimization is that it leads to many zero-weights. While these are
@@ -352,7 +328,7 @@ SBUX: 0.0695
 
 ### Black-Litterman allocation
 
-As of v0.5.0, we now support Black-Litterman asset allocation, which allows you to combine
+Pyportfolioopt supports Black-Litterman asset allocation, which allows you to combine
 a prior estimate of returns (e.g the market-implied returns) with your own views to form a
 posterior estimate. This results in much better estimates of expected returns than just using
 the mean historical return. Check out the [docs](https://pyportfolioopt.readthedocs.io/en/latest/BlackLitterman.html) for a discussion of the theory, as well as advice
@@ -439,9 +415,6 @@ PyPortfolioOpt provides a test dataset of daily returns for 20 tickers:
 ['GOOG', 'AAPL', 'FB', 'BABA', 'AMZN', 'GE', 'AMD', 'WMT', 'BAC', 'GM', 'T', 'UAA', 'SHLD', 'XOM', 'RRC', 'BBY', 'MA', 'PFE', 'JPM', 'SBUX']
 ```
 
-```result
-```
-
 These tickers have been informally selected to meet several criteria:
 
 - reasonably liquid
@@ -483,7 +456,7 @@ BibTex::
 
 Contributions are _most welcome_. Have a look at the [Contribution Guide](https://github.com/PyPortfolio/PyPortfolioOpt/blob/main/CONTRIBUTING.md) for more.
 
-I'd like to thank all of the people who have contributed to PyPortfolioOpt since its release in 2018.
+We'd like to thank all of the people who have contributed to PyPortfolioOpt since its release in 2018.
 Special shout-outs to:
 
 - Tuan Tran
