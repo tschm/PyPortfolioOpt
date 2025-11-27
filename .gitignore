@@ -6,6 +6,7 @@ sandbox
 .DS_Store
 
 _tests
+_book
 
 .tox/
 docs/_build/
