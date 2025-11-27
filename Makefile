@@ -35,11 +35,17 @@ install-uv: ## ensure uv (and uvx) are installed locally
 	fi
 
 install: install-uv ## install
-	@printf "${BLUE}[INFO] Creating virtual environment...${RESET}\n"
-	# Create the virtual environment
-	@./bin/uv venv --python 3.12 || { printf "${RED}[ERROR] Failed to create virtual environment${RESET}\n"; exit 1; }
+	# Create the virtual environment only if it doesn't exist
+	@if [ ! -d ".venv" ]; then \
+	  ./bin/uv venv --python 3.12 || { printf "${RED}[ERROR] Failed to create virtual environment${RESET}\n"; exit 1; }; \
+	else \
+	  printf "${BLUE}[INFO] Using existing virtual environment at .venv, skipping creation${RESET}\n"; \
+	fi
+
+	# Install the dependencies from pyproject.toml
 	@printf "${BLUE}[INFO] Installing dependencies${RESET}\n"
-	@./bin/uv sync --all-extras --frozen || { printf "${RED}[ERROR] Failed to install dependencies${RESET}\n"; exit 1; }
+	@./bin/uv sync --all-extras --frozen || { printf "${RED}[ERROR] Failed to install dependencies${RESET}\n"; exit 1; }; \
+
 
 clean: ## clean
 	@printf "${BLUE}Cleaning project...${RESET}\n"
