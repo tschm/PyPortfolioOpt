@@ -43,8 +43,7 @@ install: install-uv ## install
 	fi
 
 	# Install the dependencies from pyproject.toml
-	@printf "${BLUE}[INFO] Installing dependencies${RESET}\n"
-	@./bin/uv sync --all-extras --frozen || { printf "${RED}[ERROR] Failed to install dependencies${RESET}\n"; exit 1; }; \
+	@./bin/uv sync --all-extras --frozen || { printf "${RED}[ERROR] Failed to install dependencies${RESET}\n"; exit 1; }
 
 
 clean: ## clean
