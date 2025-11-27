@@ -5,7 +5,8 @@ build
 sandbox
 .DS_Store
 
-tests/dockerfiles/
+_tests
+
 .tox/
 docs/_build/
 media/logo_design/
