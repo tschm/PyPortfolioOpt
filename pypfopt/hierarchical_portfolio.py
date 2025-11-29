@@ -1,11 +1,11 @@
 """
 The ``hierarchical_portfolio`` module implements hierarchical clustering portfolio methods.
 
-This module seeks to implement one of the recent advances in portfolio optimization -
-the application of hierarchical clustering models in allocation.
+This module implements recent advances in portfolio optimization using
+hierarchical clustering models for allocation.
 
-All of the hierarchical classes have a similar API to ``EfficientFrontier``, though since
-many hierarchical models currently don't support different objectives, the actual allocation
+All hierarchical classes have a similar API to ``EfficientFrontier``, though since
+hierarchical models currently don't support different objectives, the actual allocation
 happens with a call to ``optimize()``.
 
 Currently implemented:

@@ -12,7 +12,6 @@ historical returns. The format of the data input is the same as that in
 - sample covariance
 - semicovariance
 - exponentially weighted covariance
-- minimum covariance determinant (deprecated)
 - shrunk covariance matrices:
 
     - manual shrinkage
