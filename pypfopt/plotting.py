@@ -3,10 +3,10 @@ The ``plotting`` module houses all the functions to generate various plots.
 
 Currently implemented:
 
-  - ``plot_covariance`` - plot a correlation matrix
-  - ``plot_dendrogram`` - plot the hierarchical clusters in a portfolio
-  - ``plot_efficient_frontier`` – plot the efficient frontier from an EfficientFrontier or CLA object
-  - ``plot_weights`` - bar chart of weights
+- ``plot_covariance`` - plot a correlation matrix
+- ``plot_dendrogram`` - plot the hierarchical clusters in a portfolio
+- ``plot_efficient_frontier`` - plot the efficient frontier from an EfficientFrontier or CLA object
+- ``plot_weights`` - bar chart of weights
 """
 
 import warnings
@@ -18,7 +18,19 @@ from . import CLA, EfficientFrontier, exceptions, risk_models
 
 
 def _import_matplotlib():
-    """Helper function to import matplotlib only when needed"""
+    """
+    Import matplotlib.pyplot when needed.
+
+    Returns
+    -------
+    module
+        The matplotlib.pyplot module.
+
+    Raises
+    ------
+    ImportError
+        If matplotlib is not installed.
+    """
     try:
         import matplotlib.pyplot as plt
 
@@ -28,7 +40,19 @@ def _import_matplotlib():
 
 
 def _get_plotly():
-    """Helper function to import plotly only when needed"""
+    """
+    Import plotly when needed.
+
+    Returns
+    -------
+    tuple
+        A tuple of (plotly.graph_objects, make_subplots).
+
+    Raises
+    ------
+    ImportError
+        If plotly is not installed.
+    """
     try:
         import plotly.graph_objects as go
         from plotly.subplots import make_subplots
@@ -42,14 +66,16 @@ def _get_plotly():
 
 def _plot_io(**kwargs):
     """
-    Helper method to optionally save the figure to file.
+    Save the figure to file and/or display it.
 
-    :param filename: name of the file to save to, defaults to None (doesn't save)
-    :type filename: str, optional
-    :param dpi: dpi of figure to save or plot, defaults to 300
-    :type dpi: int (between 50-500)
-    :param showfig: whether to plt.show() the figure, defaults to False
-    :type showfig: bool, optional
+    Parameters
+    ----------
+    filename : str, optional
+        Name of the file to save to, defaults to None (doesn't save).
+    dpi : int, optional
+        DPI of figure to save or plot, defaults to 300.
+    showfig : bool, optional
+        Whether to plt.show() the figure, defaults to False.
     """
     plt = _import_matplotlib()
 
@@ -66,19 +92,34 @@ def _plot_io(**kwargs):
 
 def plot_covariance(cov_matrix, plot_correlation=False, show_tickers=True, **kwargs):
     """
-    Generate a basic plot of the covariance (or correlation) matrix, given a
-    covariance matrix.
+    Generate a basic plot of the covariance (or correlation) matrix.
 
-    :param cov_matrix: covariance matrix
-    :type cov_matrix: pd.DataFrame or np.ndarray
-    :param plot_correlation: whether to plot the correlation matrix instead, defaults to False.
-    :type plot_correlation: bool, optional
-    :param show_tickers: whether to use tickers as labels (not recommended for large portfolios),
-                        defaults to True
-    :type show_tickers: bool, optional
+    Parameters
+    ----------
+    cov_matrix : pd.DataFrame or np.ndarray
+        Covariance matrix.
+    plot_correlation : bool, optional
+        Whether to plot the correlation matrix instead, defaults to False.
+    show_tickers : bool, optional
+        Whether to use tickers as labels (not recommended for large portfolios),
+        defaults to True.
+    **kwargs : dict
+        Additional arguments:
 
-    :return: matplotlib axis
-    :rtype: matplotlib.axes object
+        - ``filename`` : Name of file to save to.
+        - ``dpi`` : DPI of saved figure.
+        - ``showfig`` : Whether to show the figure.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        The matplotlib axes object.
+
+    Examples
+    --------
+    >>> from pypfopt import plotting, risk_models
+    >>> # S = risk_models.sample_cov(prices)
+    >>> # plotting.plot_covariance(S, plot_correlation=True)
     """
     plt = _import_matplotlib()
 
@@ -107,17 +148,33 @@ def plot_dendrogram(hrp, ax=None, show_tickers=True, **kwargs):
     """
     Plot the clusters in the form of a dendrogram.
 
-    :param hrp: HRPpt object that has already been optimized.
-    :type hrp: object
-    :param show_tickers: whether to use tickers as labels (not recommended for large portfolios),
-                        defaults to True
-    :type show_tickers: bool, optional
-    :param filename: name of the file to save to, defaults to None (doesn't save)
-    :type filename: str, optional
-    :param showfig: whether to plt.show() the figure, defaults to False
-    :type showfig: bool, optional
-    :return: matplotlib axis
-    :rtype: matplotlib.axes object
+    Parameters
+    ----------
+    hrp : HRPOpt
+        HRPOpt object that has already been optimized.
+    ax : matplotlib.axes.Axes, optional
+        Axes to plot to.
+    show_tickers : bool, optional
+        Whether to use tickers as labels (not recommended for large portfolios),
+        defaults to True.
+    **kwargs : dict
+        Additional arguments:
+
+        - ``filename`` : Name of file to save to.
+        - ``dpi`` : DPI of saved figure.
+        - ``showfig`` : Whether to show the figure.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        The matplotlib axes object.
+
+    Examples
+    --------
+    >>> from pypfopt import HRPOpt, plotting
+    >>> # hrp = HRPOpt(returns)
+    >>> # hrp.optimize()
+    >>> # plotting.plot_dendrogram(hrp)
     """
     plt = _import_matplotlib()
 
@@ -144,7 +201,27 @@ def plot_dendrogram(hrp, ax=None, show_tickers=True, **kwargs):
 
 def _plot_cla(cla, points, ax, show_assets, show_tickers, interactive):
     """
-    Helper function to plot the efficient frontier from a CLA object
+    Plot the efficient frontier from a CLA object.
+
+    Parameters
+    ----------
+    cla : CLA
+        CLA object.
+    points : int
+        Number of points on the frontier.
+    ax : matplotlib.axes.Axes or plotly.graph_objects.Figure
+        Axes to plot to.
+    show_assets : bool
+        Whether to show individual assets.
+    show_tickers : bool
+        Whether to annotate assets with ticker labels.
+    interactive : bool
+        Whether to use plotly for interactive plotting.
+
+    Returns
+    -------
+    matplotlib.axes.Axes or plotly.graph_objects.Figure
+        The plot axes object.
     """
     if interactive:
         go, _ = _get_plotly()
@@ -224,8 +301,19 @@ def _plot_cla(cla, points, ax, show_assets, show_tickers, interactive):
 
 def _ef_default_returns_range(ef, points):
     """
-    Helper function to generate a range of returns from the GMV returns to
-    the maximum (constrained) returns
+    Generate a range of returns from GMV to maximum returns.
+
+    Parameters
+    ----------
+    ef : EfficientFrontier
+        EfficientFrontier object.
+    points : int
+        Number of points.
+
+    Returns
+    -------
+    np.ndarray
+        Array of return values.
     """
     ef_minvol = ef.deepcopy()
     ef_maxret = ef.deepcopy()
@@ -238,7 +326,29 @@ def _ef_default_returns_range(ef, points):
 
 def _plot_ef(ef, ef_param, ef_param_range, ax, show_assets, show_tickers, interactive):
     """
-    Helper function to plot the efficient frontier from an EfficientFrontier object
+    Plot the efficient frontier from an EfficientFrontier object.
+
+    Parameters
+    ----------
+    ef : EfficientFrontier
+        EfficientFrontier object.
+    ef_param : str
+        Parameter type ('utility', 'risk', or 'return').
+    ef_param_range : array-like
+        Range of parameter values.
+    ax : matplotlib.axes.Axes or plotly.graph_objects.Figure
+        Axes to plot to.
+    show_assets : bool
+        Whether to show individual assets.
+    show_tickers : bool
+        Whether to annotate assets with ticker labels.
+    interactive : bool
+        Whether to use plotly for interactive plotting.
+
+    Returns
+    -------
+    matplotlib.axes.Axes or plotly.graph_objects.Figure
+        The plot axes object.
     """
     if interactive:
         go, _ = _get_plotly()
@@ -324,29 +434,51 @@ def plot_efficient_frontier(
     """
     Plot the efficient frontier based on either a CLA or EfficientFrontier object.
 
-    :param opt: an instantiated optimizer object BEFORE optimising an objective
-    :type opt: EfficientFrontier or CLA
-    :param ef_param: [EfficientFrontier] whether to use a range over utility, risk, or return.
-                     Defaults to "return".
-    :type ef_param: str, one of {"utility", "risk", "return"}.
-    :param ef_param_range: the range of parameter values for ef_param.
-                           If None, automatically compute a range from min->max return.
-    :type ef_param_range: np.array or list (recommended to use np.arange or np.linspace)
-    :param points: number of points to plot, defaults to 100. This is overridden if
-                   an `ef_param_range` is provided explicitly.
-    :type points: int, optional
-    :param show_assets: whether we should plot the asset risks/returns also, defaults to True
-    :type show_assets: bool, optional
-    :param show_tickers: whether we should annotate each asset with its ticker, defaults to False
-    :type show_tickers: bool, optional
-    :param interactive: Switch rendering engine between Plotly and Matplotlib
-    :type show_tickers: bool, optional
-    :param filename: name of the file to save to, defaults to None (doesn't save)
-    :type filename: str, optional
-    :param showfig: whether to plt.show() the figure, defaults to False
-    :type showfig: bool, optional
-    :return: matplotlib axis
-    :rtype: matplotlib.axes object
+    Parameters
+    ----------
+    opt : EfficientFrontier or CLA
+        An instantiated optimizer object BEFORE optimising an objective.
+    ef_param : str, optional
+        [EfficientFrontier] Whether to use a range over utility, risk, or return.
+        Defaults to "return". Must be one of {"utility", "risk", "return"}.
+    ef_param_range : np.ndarray or list, optional
+        The range of parameter values for ef_param.
+        If None, automatically compute a range from min->max return.
+        Recommended to use np.arange or np.linspace.
+    points : int, optional
+        Number of points to plot, defaults to 100. This is overridden if
+        an ``ef_param_range`` is provided explicitly.
+    ax : matplotlib.axes.Axes, optional
+        Axes to plot to.
+    show_assets : bool, optional
+        Whether to plot the asset risks/returns, defaults to True.
+    show_tickers : bool, optional
+        Whether to annotate each asset with its ticker, defaults to False.
+    interactive : bool, optional
+        Switch rendering engine between Plotly and Matplotlib, defaults to False.
+    **kwargs : dict
+        Additional arguments:
+
+        - ``filename`` : Name of file to save to.
+        - ``showfig`` : Whether to show the figure.
+
+    Returns
+    -------
+    matplotlib.axes.Axes or plotly.graph_objects.Figure
+        The plot axes object.
+
+    Raises
+    ------
+    NotImplementedError
+        If opt is not an EfficientFrontier or CLA object.
+
+    Examples
+    --------
+    >>> from pypfopt import EfficientFrontier, plotting, expected_returns, risk_models
+    >>> # mu = expected_returns.mean_historical_return(prices)
+    >>> # S = risk_models.sample_cov(prices)
+    >>> # ef = EfficientFrontier(mu, S)
+    >>> # plotting.plot_efficient_frontier(ef, show_assets=True)
     """
     plt = _import_matplotlib()
 
@@ -397,14 +529,33 @@ def plot_efficient_frontier(
 
 def plot_weights(weights, ax=None, **kwargs):
     """
-    Plot the portfolio weights as a horizontal bar chart
+    Plot the portfolio weights as a horizontal bar chart.
 
-    :param weights: the weights outputted by any PyPortfolioOpt optimizer
-    :type weights: {ticker: weight} dict
-    :param ax: ax to plot to, optional
-    :type ax: matplotlib.axes
-    :return: matplotlib axis
-    :rtype: matplotlib.axes
+    Parameters
+    ----------
+    weights : dict
+        The weights outputted by any PyPortfolioOpt optimizer,
+        in the format ``{ticker: weight}``.
+    ax : matplotlib.axes.Axes, optional
+        Axes to plot to.
+    **kwargs : dict
+        Additional arguments:
+
+        - ``filename`` : Name of file to save to.
+        - ``dpi`` : DPI of saved figure.
+        - ``showfig`` : Whether to show the figure.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        The matplotlib axes object.
+
+    Examples
+    --------
+    >>> from pypfopt import EfficientFrontier, plotting
+    >>> # ef = EfficientFrontier(mu, S)
+    >>> # weights = ef.max_sharpe()
+    >>> # plotting.plot_weights(weights)
     """
     plt = _import_matplotlib()
 
