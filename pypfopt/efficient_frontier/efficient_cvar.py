@@ -1,6 +1,7 @@
 """
-The ``efficient_cvar`` submodule houses the EfficientCVaR class, which
-generates portfolios along the mean-CVaR frontier.
+The ``efficient_cvar`` submodule houses the EfficientCVaR class.
+
+This module generates portfolios along the mean-CVaR frontier.
 """
 
 import warnings
@@ -14,36 +15,37 @@ from .efficient_frontier import EfficientFrontier
 
 class EfficientCVaR(EfficientFrontier):
     """
-    The EfficientCVaR class allows for optimization along the mean-CVaR frontier, using the
-    formulation of Rockafellar and Ursayev (2001).
+    Optimization along the mean-CVaR (Conditional Value at Risk) frontier.
 
-    Instance variables:
+    The EfficientCVaR class allows for optimization along the mean-CVaR
+    frontier, using the formulation of Rockafellar and Ursayev (2001).
 
-    - Inputs:
+    Attributes
+    ----------
+    n_assets : int
+        Number of assets.
+    tickers : list
+        List of asset tickers.
+    bounds : tuple or list
+        Weight bounds for each asset.
+    returns : pd.DataFrame
+        Historical returns data.
+    expected_returns : np.ndarray
+        Expected returns for each asset.
+    solver : str
+        CVXPY solver name.
+    solver_options : dict
+        Solver parameters.
+    weights : np.ndarray
+        Optimized portfolio weights.
 
-        - ``n_assets`` - int
-        - ``tickers`` - str list
-        - ``bounds`` - float tuple OR (float tuple) list
-        - ``returns`` - pd.DataFrame
-        - ``expected_returns`` - np.ndarray
-        - ``solver`` - str
-        - ``solver_options`` - {str: str} dict
-
-
-    - Output: ``weights`` - np.ndarray
-
-    Public methods:
-
-    - ``min_cvar()`` minimises the CVaR
-    - ``efficient_risk()`` maximises return for a given CVaR
-    - ``efficient_return()`` minimises CVaR for a given target return
-    - ``add_objective()`` adds a (convex) objective to the optimization problem
-    - ``add_constraint()`` adds a constraint to the optimization problem
-
-    - ``portfolio_performance()`` calculates the expected return and CVaR of the portfolio
-    - ``set_weights()`` creates self.weights (np.ndarray) from a weights dict
-    - ``clean_weights()`` rounds the weights and clips near-zeros.
-    - ``save_weights_to_file()`` saves the weights to csv, json, or txt.
+    Examples
+    --------
+    >>> from pypfopt import EfficientCVaR, expected_returns
+    >>> # mu = expected_returns.mean_historical_return(prices)
+    >>> # returns = expected_returns.returns_from_prices(prices)
+    >>> # ef = EfficientCVaR(mu, returns)
+    >>> # weights = ef.min_cvar()
     """
 
     def __init__(
@@ -57,24 +59,35 @@ class EfficientCVaR(EfficientFrontier):
         solver_options=None,
     ):
         """
-        :param expected_returns: expected returns for each asset. Can be None if
-                                optimising for conditional value at risk only.
-        :type expected_returns: pd.Series, list, np.ndarray
-        :param returns: (historic) returns for all your assets (no NaNs).
-                                 See ``expected_returns.returns_from_prices``.
-        :type returns: pd.DataFrame or np.array
-        :param beta: confidence level, defauls to 0.95 (i.e expected loss on the worst (1-beta) days).
-        :param weight_bounds: minimum and maximum weight of each asset OR single min/max pair
-                              if all identical, defaults to (0, 1). Must be changed to (-1, 1)
-                              for portfolios with shorting.
-        :type weight_bounds: tuple OR tuple list, optional
-        :param solver: name of solver. list available solvers with: `cvxpy.installed_solvers()`
-        :type solver: str
-        :param verbose: whether performance and debugging info should be printed, defaults to False
-        :type verbose: bool, optional
-        :param solver_options: parameters for the given solver
-        :type solver_options: dict, optional
-        :raises TypeError: if ``expected_returns`` is not a series, list or array
+        Initialize the EfficientCVaR object.
+
+        Parameters
+        ----------
+        expected_returns : pd.Series, list, or np.ndarray
+            Expected returns for each asset. Can be None if
+            optimising for conditional value at risk only.
+        returns : pd.DataFrame or np.ndarray
+            (Historic) returns for all your assets (no NaNs).
+            See ``expected_returns.returns_from_prices``.
+        beta : float, optional
+            Confidence level, defaults to 0.95 (i.e expected loss
+            on the worst (1-beta) days).
+        weight_bounds : tuple or list, optional
+            Minimum and maximum weight of each asset OR single min/max pair
+            if all identical, defaults to (0, 1). Must be changed to (-1, 1)
+            for portfolios with shorting.
+        solver : str, optional
+            Name of solver. List available solvers with ``cvxpy.installed_solvers()``.
+        verbose : bool, optional
+            Whether performance and debugging info should be printed,
+            defaults to False.
+        solver_options : dict, optional
+            Parameters for the given solver.
+
+        Raises
+        ------
+        TypeError
+            If ``expected_returns`` is not a series, list or array.
         """
         super().__init__(
             expected_returns=expected_returns,
@@ -91,10 +104,36 @@ class EfficientCVaR(EfficientFrontier):
         self._u = cp.Variable(len(self.returns))
 
     def set_weights(self, input_weights):
+        """
+        Override parent method.
+
+        Raises
+        ------
+        NotImplementedError
+            Always, as set_weights is not available in EfficientCVaR.
+        """
         raise NotImplementedError("Method not available in EfficientCVaR.")
 
     @staticmethod
     def _validate_beta(beta):
+        """
+        Validate the beta (confidence level) parameter.
+
+        Parameters
+        ----------
+        beta : float
+            Confidence level.
+
+        Returns
+        -------
+        float
+            Validated beta value.
+
+        Raises
+        ------
+        ValueError
+            If beta is not between 0 and 1.
+        """
         if not (0 <= beta < 1):
             raise ValueError("beta must be between 0 and 1")
         if beta <= 0.2:
@@ -105,23 +144,61 @@ class EfficientCVaR(EfficientFrontier):
         return beta
 
     def min_volatility(self):
+        """
+        Override parent method.
+
+        Raises
+        ------
+        NotImplementedError
+            Always, as min_volatility is not available in EfficientCVaR.
+            Use min_cvar instead.
+        """
         raise NotImplementedError("Please use min_cvar instead.")
 
     def max_sharpe(self, risk_free_rate=0.0):
+        """
+        Override parent method.
+
+        Raises
+        ------
+        NotImplementedError
+            Always, as max_sharpe is not available in EfficientCVaR.
+        """
         raise NotImplementedError("Method not available in EfficientCVaR.")
 
     def max_quadratic_utility(self, risk_aversion=1, market_neutral=False):
+        """
+        Override parent method.
+
+        Raises
+        ------
+        NotImplementedError
+            Always, as max_quadratic_utility is not available in EfficientCVaR.
+        """
         raise NotImplementedError("Method not available in EfficientCVaR.")
 
     def min_cvar(self, market_neutral=False):
         """
-        Minimise portfolio CVaR (see docs for further explanation).
+        Minimise portfolio CVaR (Conditional Value at Risk).
 
-        :param market_neutral: whether the portfolio should be market neutral (weights sum to zero),
-                               defaults to False. Requires negative lower weight bound.
-        :param market_neutral: bool, optional
-        :return: asset weights for the volatility-minimising portfolio
-        :rtype: OrderedDict
+        Parameters
+        ----------
+        market_neutral : bool, optional
+            Whether the portfolio should be market neutral (weights sum to zero),
+            defaults to False. Requires negative lower weight bound.
+
+        Returns
+        -------
+        OrderedDict
+            Asset weights for the CVaR-minimising portfolio.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientCVaR, expected_returns
+        >>> # mu = expected_returns.mean_historical_return(prices)
+        >>> # returns = expected_returns.returns_from_prices(prices)
+        >>> # ef = EfficientCVaR(mu, returns)
+        >>> # weights = ef.min_cvar()
         """
         self._objective = self._alpha + 1.0 / (
             len(self.returns) * (1 - self._beta)
@@ -142,15 +219,30 @@ class EfficientCVaR(EfficientFrontier):
         """
         Minimise CVaR for a given target return.
 
-        :param target_return: the desired return of the resulting portfolio.
-        :type target_return: float
-        :param market_neutral: whether the portfolio should be market neutral (weights sum to zero),
-                               defaults to False. Requires negative lower weight bound.
-        :type market_neutral: bool, optional
-        :raises ValueError: if ``target_return`` is not a positive float
-        :raises ValueError: if no portfolio can be found with return equal to ``target_return``
-        :return: asset weights for the optimal portfolio
-        :rtype: OrderedDict
+        Parameters
+        ----------
+        target_return : float
+            The desired return of the resulting portfolio.
+        market_neutral : bool, optional
+            Whether the portfolio should be market neutral (weights sum to zero),
+            defaults to False. Requires negative lower weight bound.
+
+        Returns
+        -------
+        OrderedDict
+            Asset weights for the optimal portfolio.
+
+        Raises
+        ------
+        ValueError
+            If ``target_return`` is not a positive float.
+            If no portfolio can be found with return equal to ``target_return``.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientCVaR
+        >>> # ef = EfficientCVaR(mu, returns)
+        >>> # weights = ef.efficient_return(target_return=0.15)
         """
         update_existing_parameter = self.is_parameter_defined("target_return")
         if update_existing_parameter:
@@ -179,16 +271,28 @@ class EfficientCVaR(EfficientFrontier):
     def efficient_risk(self, target_cvar, market_neutral=False):
         """
         Maximise return for a target CVaR.
+
         The resulting portfolio will have a CVaR less than the target
         (but not guaranteed to be equal).
 
-        :param target_cvar: the desired conditional value at risk of the resulting portfolio.
-        :type target_cvar: float
-        :param market_neutral: whether the portfolio should be market neutral (weights sum to zero),
-                               defaults to False. Requires negative lower weight bound.
-        :param market_neutral: bool, optional
-        :return: asset weights for the efficient risk portfolio
-        :rtype: OrderedDict
+        Parameters
+        ----------
+        target_cvar : float
+            The desired conditional value at risk of the resulting portfolio.
+        market_neutral : bool, optional
+            Whether the portfolio should be market neutral (weights sum to zero),
+            defaults to False. Requires negative lower weight bound.
+
+        Returns
+        -------
+        OrderedDict
+            Asset weights for the efficient risk portfolio.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientCVaR
+        >>> # ef = EfficientCVaR(mu, returns)
+        >>> # weights = ef.efficient_risk(target_cvar=0.10)
         """
         update_existing_parameter = self.is_parameter_defined("target_cvar")
         if update_existing_parameter:
@@ -219,14 +323,32 @@ class EfficientCVaR(EfficientFrontier):
 
     def portfolio_performance(self, verbose=False):
         """
-        After optimising, calculate (and optionally print) the performance of the optimal
-        portfolio, specifically: expected return, CVaR
+        Calculate the performance of the optimal portfolio.
 
-        :param verbose: whether performance should be printed, defaults to False
-        :type verbose: bool, optional
-        :raises ValueError: if weights have not been calculated yet
-        :return: expected return, CVaR.
-        :rtype: (float, float)
+        After optimising, calculate (and optionally print) the performance
+        of the optimal portfolio, specifically: expected return, CVaR.
+
+        Parameters
+        ----------
+        verbose : bool, optional
+            Whether performance should be printed, defaults to False.
+
+        Returns
+        -------
+        tuple
+            A tuple of (expected return, CVaR).
+
+        Raises
+        ------
+        ValueError
+            If weights have not been calculated yet.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientCVaR
+        >>> # ef = EfficientCVaR(mu, returns)
+        >>> # ef.min_cvar()
+        >>> # mu, cvar = ef.portfolio_performance(verbose=True)
         """
         mu = objective_functions.portfolio_return(
             self.weights, self.expected_returns, negative=False
