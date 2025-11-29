@@ -1,6 +1,15 @@
 """
-The ``discrete_allocation`` module contains the ``DiscreteAllocation`` class, which
-offers multiple methods to generate a discrete portfolio allocation from continuous weights.
+The ``discrete_allocation`` module contains the ``DiscreteAllocation`` class.
+
+This class offers multiple methods to generate a discrete portfolio allocation
+from continuous weights. When you have optimal portfolio weights (like 0.15 for
+stock A, 0.25 for stock B), you need to convert these into actual share counts
+given your available capital.
+
+Currently implemented allocation methods:
+
+- Greedy algorithm (``greedy_portfolio``)
+- Integer linear programming (``lp_portfolio``)
 """
 
 import collections
@@ -16,14 +25,36 @@ from . import exceptions
 
 def get_latest_prices(prices):
     """
-    A helper tool which retrieves the most recent asset prices from a dataframe of
-    asset prices, required in order to generate a discrete allocation.
+    Retrieve the most recent asset prices from a DataFrame.
 
-    :param prices: historical asset prices
-    :type prices: pd.DataFrame
-    :raises TypeError: if prices are not in a dataframe
-    :return: the most recent price of each asset
-    :rtype: pd.Series
+    A helper tool that retrieves the most recent asset prices from a DataFrame
+    of asset prices. This is required to generate a discrete allocation.
+
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        Historical asset prices, where each row is a date and each column is
+        a ticker/id.
+
+    Returns
+    -------
+    pd.Series
+        The most recent price of each asset.
+
+    Raises
+    ------
+    TypeError
+        If prices are not in a DataFrame.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> from pypfopt.discrete_allocation import get_latest_prices
+    >>> prices = pd.DataFrame({
+    ...     'AAPL': [100, 102, 105],
+    ...     'GOOG': [200, 205, 210]
+    ... })
+    >>> latest = get_latest_prices(prices)
     """
     if not isinstance(prices, pd.DataFrame):
         raise TypeError("prices not in a dataframe")
@@ -32,41 +63,67 @@ def get_latest_prices(prices):
 
 class DiscreteAllocation:
     """
-    Generate a discrete portfolio allocation from continuous weights
+    Generate a discrete portfolio allocation from continuous weights.
 
-    Instance variables:
+    This class converts continuous portfolio weights (e.g., 0.15 for AAPL)
+    into actual share counts given a total portfolio value and current prices.
 
-    - Inputs:
+    Attributes
+    ----------
+    weights : list of tuple
+        List of (ticker, weight) tuples.
+    latest_prices : pd.Series
+        Current prices for each asset.
+    total_portfolio_value : float
+        Total value of the portfolio in currency units.
+    short_ratio : float
+        The ratio of short positions.
+    allocation : dict
+        The resulting discrete allocation (after calling an allocation method).
 
-        - ``weights`` - dict
-        - ``latest_prices`` - pd.Series or dict
-        - ``total_portfolio_value`` - int/float
-        - ``short_ratio``- float
-
-    - Output: ``allocation`` - dict
-
-    Public methods:
-
-    - ``greedy_portfolio()`` - uses a greedy algorithm
-    - ``lp_portfolio()`` - uses linear programming
+    Examples
+    --------
+    >>> from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
+    >>> from pypfopt import EfficientFrontier, expected_returns, risk_models
+    >>> # Assuming prices is a DataFrame of historical prices
+    >>> # mu = expected_returns.mean_historical_return(prices)
+    >>> # S = risk_models.sample_cov(prices)
+    >>> # ef = EfficientFrontier(mu, S)
+    >>> # weights = ef.max_sharpe()
+    >>> # latest_prices = get_latest_prices(prices)
+    >>> # da = DiscreteAllocation(weights, latest_prices, total_portfolio_value=10000)
+    >>> # allocation, leftover = da.greedy_portfolio()
     """
 
     def __init__(
         self, weights, latest_prices, total_portfolio_value=10000, short_ratio=None
     ):
         """
-        :param weights: continuous weights generated from the ``efficient_frontier`` module
-        :type weights: dict
-        :param latest_prices: the most recent price for each asset
-        :type latest_prices: pd.Series
-        :param total_portfolio_value: the desired total value of the portfolio, defaults to 10000
-        :type total_portfolio_value: int/float, optional
-        :param short_ratio: the short ratio, e.g 0.3 corresponds to 130/30. If None,
-                            defaults to the input weights.
-        :type short_ratio: float, defaults to None.
-        :raises TypeError: if ``weights`` is not a dict
-        :raises TypeError: if ``latest_prices`` isn't a series
-        :raises ValueError: if ``short_ratio < 0``
+        Initialize the DiscreteAllocation object.
+
+        Parameters
+        ----------
+        weights : dict
+            Continuous weights generated from an optimizer, in the form
+            {ticker: weight}.
+        latest_prices : pd.Series
+            The most recent price for each asset.
+        total_portfolio_value : float, optional
+            The desired total value of the portfolio in currency units.
+            Defaults to 10000.
+        short_ratio : float, optional
+            The short ratio, e.g., 0.3 corresponds to 130/30 portfolio.
+            If None, defaults to the sum of negative weights.
+
+        Raises
+        ------
+        TypeError
+            If ``weights`` is not a dict.
+            If ``latest_prices`` isn't a Series or contains NaNs.
+        ValueError
+            If ``weights`` contains NaN values.
+            If ``total_portfolio_value`` is not positive.
+            If ``short_ratio`` is negative.
         """
         if not isinstance(weights, dict):
             raise TypeError("weights should be a dictionary of {ticker: weight}")
@@ -91,22 +148,35 @@ class DiscreteAllocation:
     @staticmethod
     def _remove_zero_positions(allocation):
         """
-        Utility function to remove zero positions (i.e with no shares being bought)
+        Remove zero positions from an allocation.
 
-        :type allocation: dict
+        Parameters
+        ----------
+        allocation : dict
+            Dictionary of {ticker: shares}.
+
+        Returns
+        -------
+        dict
+            Allocation with zero positions removed.
         """
         return {k: v for k, v in allocation.items() if v != 0}
 
     def _allocation_rmse_error(self, verbose=True):
         """
-        Utility function to calculate and print RMSE error between discretised
-        weights and continuous weights. RMSE was used instead of MAE because we
-        want to penalise large variations.
+        Calculate RMSE error between discretised and continuous weights.
 
-        :param verbose: print weight discrepancies?
-        :type verbose: bool
-        :return: rmse error
-        :rtype: float
+        RMSE was used instead of MAE because we want to penalise large variations.
+
+        Parameters
+        ----------
+        verbose : bool, optional
+            Whether to print weight discrepancies. Defaults to True.
+
+        Returns
+        -------
+        float
+            The RMSE error.
         """
         portfolio_val = 0
         for ticker, num in self.allocation.items():
@@ -133,16 +203,35 @@ class DiscreteAllocation:
 
     def greedy_portfolio(self, reinvest=False, verbose=False):
         """
-        Convert continuous weights into a discrete portfolio allocation
-        using a greedy iterative approach.
+        Convert continuous weights into discrete allocation using a greedy algorithm.
 
-        :param reinvest: whether or not to reinvest cash gained from shorting
-        :type reinvest: bool, defaults to False
-        :param verbose: print error analysis?
-        :type verbose: bool, defaults to False
-        :return: the number of shares of each ticker that should be purchased,
-                 along with the amount of funds leftover.
-        :rtype: (dict, float)
+        This method iteratively buys shares of the asset with the largest
+        deviation from its target weight until no more shares can be purchased.
+
+        Parameters
+        ----------
+        reinvest : bool, optional
+            Whether to reinvest cash gained from shorting. Defaults to False.
+        verbose : bool, optional
+            Whether to print error analysis. Defaults to False.
+
+        Returns
+        -------
+        tuple
+            A tuple of (allocation, leftover) where:
+            - allocation : dict
+                The number of shares of each ticker to purchase.
+            - leftover : float
+                The amount of funds remaining after allocation.
+
+        Examples
+        --------
+        >>> from pypfopt.discrete_allocation import DiscreteAllocation
+        >>> import pandas as pd
+        >>> weights = {'AAPL': 0.4, 'GOOG': 0.3, 'MSFT': 0.3}
+        >>> prices = pd.Series({'AAPL': 150, 'GOOG': 2500, 'MSFT': 300})
+        >>> da = DiscreteAllocation(weights, prices, total_portfolio_value=10000)
+        >>> allocation, leftover = da.greedy_portfolio()
         """
         # Sort in descending order of weight
         self.weights.sort(key=lambda x: x[1], reverse=True)
@@ -257,18 +346,39 @@ class DiscreteAllocation:
     # todo 1.7.0: remove ECOS_BB defaulting behavior from docstring
     def lp_portfolio(self, reinvest=False, verbose=False, solver=None):
         """
-        Convert continuous weights into a discrete portfolio allocation
-        using integer programming.
+        Convert continuous weights into discrete allocation using integer programming.
 
-        :param reinvest: whether or not to reinvest cash gained from shorting
-        :type reinvest: bool, defaults to False
-        :param verbose: print error analysis?
-        :type verbose: bool
-        :param solver: the CVXPY solver to use (must support mixed-integer programs)
-        :type solver: str, defaults to "ECOS_BB" if ecos is installed, else None
-        :return: the number of shares of each ticker that should be purchased, along with the amount
-                of funds leftover.
-        :rtype: (dict, float)
+        This method formulates the discrete allocation as an integer linear
+        programming problem and solves it to minimize the deviation from
+        target weights.
+
+        Parameters
+        ----------
+        reinvest : bool, optional
+            Whether to reinvest cash gained from shorting. Defaults to False.
+        verbose : bool, optional
+            Whether to print error analysis. Defaults to False.
+        solver : str, optional
+            The CVXPY solver to use (must support mixed-integer programs).
+            Defaults to "ECOS_BB" if ecos is installed, else None.
+
+        Returns
+        -------
+        tuple
+            A tuple of (allocation, leftover) where:
+            - allocation : dict
+                The number of shares of each ticker to purchase.
+            - leftover : float
+                The amount of funds remaining after allocation.
+
+        Examples
+        --------
+        >>> from pypfopt.discrete_allocation import DiscreteAllocation
+        >>> import pandas as pd
+        >>> weights = {'AAPL': 0.4, 'GOOG': 0.3, 'MSFT': 0.3}
+        >>> prices = pd.Series({'AAPL': 150, 'GOOG': 2500, 'MSFT': 300})
+        >>> da = DiscreteAllocation(weights, prices, total_portfolio_value=10000)
+        >>> allocation, leftover = da.lp_portfolio()
         """
         # todo 1.7.0: remove this defaulting behavior
         if solver is None and _check_soft_dependencies("ecos", severity="none"):

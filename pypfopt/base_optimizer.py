@@ -1,10 +1,12 @@
 """
-The ``base_optimizer`` module houses the parent classes ``BaseOptimizer`` from which all
-optimizers will inherit. ``BaseConvexOptimizer`` is the base class for all ``cvxpy`` (and ``scipy``)
-optimization.
+The ``base_optimizer`` module houses the parent classes for optimization.
 
-Additionally, we define a general utility function ``portfolio_performance`` to
-evaluate return and risk for a given set of portfolio weights.
+This module contains the ``BaseOptimizer`` class from which all optimizers
+inherit, and ``BaseConvexOptimizer`` which is the base class for all ``cvxpy``
+(and ``scipy``) optimization.
+
+Additionally, we define a general utility function ``portfolio_performance``
+to evaluate return and risk for a given set of portfolio weights.
 """
 
 import collections
@@ -24,25 +26,33 @@ from . import exceptions, objective_functions
 
 class BaseOptimizer:
     """
-    Instance variables:
+    Base class for all portfolio optimizers.
 
-    - ``n_assets`` - int
-    - ``tickers`` - str list
-    - ``weights`` - np.ndarray
+    Attributes
+    ----------
+    n_assets : int
+        Number of assets in the portfolio.
+    tickers : list
+        List of asset tickers/identifiers.
+    weights : np.ndarray or None
+        Optimized portfolio weights, None before optimization.
 
-    Public methods:
-
-    - ``set_weights()`` creates self.weights (np.ndarray) from a weights dict
-    - ``clean_weights()`` rounds the weights and clips near-zeros.
-    - ``save_weights_to_file()`` saves the weights to csv, json, or txt.
+    Examples
+    --------
+    >>> from pypfopt.base_optimizer import BaseOptimizer
+    >>> opt = BaseOptimizer(n_assets=5, tickers=['A', 'B', 'C', 'D', 'E'])
     """
 
     def __init__(self, n_assets, tickers=None):
         """
-        :param n_assets: number of assets
-        :type n_assets: int
-        :param tickers: name of assets
-        :type tickers: list
+        Initialize the BaseOptimizer.
+
+        Parameters
+        ----------
+        n_assets : int
+            Number of assets in the portfolio.
+        tickers : list, optional
+            List of asset names/tickers. If None, uses integer indices.
         """
         self.n_assets = n_assets
         if tickers is None:
@@ -55,9 +65,22 @@ class BaseOptimizer:
 
     def _make_output_weights(self, weights=None):
         """
-        Utility function to make output weight dict from weight attribute (np.array). If no
-        arguments passed, use self.tickers and self.weights. If one argument is passed, assume
-        it is an alternative weight array so use self.tickers and the argument.
+        Create output weight dictionary from weight array.
+
+        Utility function to make output weight dict from weight attribute
+        (np.array). If no arguments passed, use self.tickers and self.weights.
+        If one argument is passed, assume it is an alternative weight array
+        so use self.tickers and the argument.
+
+        Parameters
+        ----------
+        weights : np.ndarray, optional
+            Alternative weight array to use instead of self.weights.
+
+        Returns
+        -------
+        OrderedDict
+            Dictionary mapping tickers to weights.
         """
         if weights is None:
             weights = self.weights
@@ -69,25 +92,49 @@ class BaseOptimizer:
 
     def set_weights(self, input_weights):
         """
-        Utility function to set weights attribute (np.array) from user input
+        Set weights attribute from a dictionary.
 
-        :param input_weights: {ticker: weight} dict
-        :type input_weights: dict
+        Parameters
+        ----------
+        input_weights : dict
+            Dictionary mapping tickers to weights, e.g., {'AAPL': 0.3, 'GOOG': 0.7}.
         """
         self.weights = np.array([input_weights[ticker] for ticker in self.tickers])
 
     def clean_weights(self, cutoff=1e-4, rounding=5):
         """
-        Helper method to clean the raw weights, setting any weights whose absolute
-        values are below the cutoff to zero, and rounding the rest.
+        Clean the raw weights by rounding and clipping near-zeros.
 
-        :param cutoff: the lower bound, defaults to 1e-4
-        :type cutoff: float, optional
-        :param rounding: number of decimal places to round the weights, defaults to 5.
-                         Set to None if rounding is not desired.
-        :type rounding: int, optional
-        :return: asset weights
-        :rtype: OrderedDict
+        Helper method to clean the raw weights, setting any weights whose
+        absolute values are below the cutoff to zero, and rounding the rest.
+
+        Parameters
+        ----------
+        cutoff : float, optional
+            The lower bound for weights. Weights with absolute values below
+            this threshold are set to zero. Defaults to 1e-4.
+        rounding : int or None, optional
+            Number of decimal places to round the weights. Set to None if
+            rounding is not desired. Defaults to 5.
+
+        Returns
+        -------
+        OrderedDict
+            Cleaned asset weights.
+
+        Raises
+        ------
+        AttributeError
+            If weights have not been computed yet.
+        ValueError
+            If rounding is not a positive integer.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientFrontier
+        >>> # ef = EfficientFrontier(mu, S)
+        >>> # ef.min_volatility()
+        >>> # clean_weights = ef.clean_weights()
         """
         if self.weights is None:
             raise AttributeError("Weights not yet computed")
@@ -102,10 +149,26 @@ class BaseOptimizer:
 
     def save_weights_to_file(self, filename="weights.csv"):
         """
+        Save optimized weights to a file.
+
         Utility method to save weights to a text file.
 
-        :param filename: name of file. Should be csv, json, or txt.
-        :type filename: str
+        Parameters
+        ----------
+        filename : str, optional
+            Name of file. Should be csv, json, or txt. Defaults to "weights.csv".
+
+        Raises
+        ------
+        NotImplementedError
+            If the file extension is not csv, json, or txt.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientFrontier
+        >>> # ef = EfficientFrontier(mu, S)
+        >>> # ef.min_volatility()
+        >>> # ef.save_weights_to_file("my_weights.json")
         """
         clean_weights = self.clean_weights()
 
@@ -124,30 +187,26 @@ class BaseOptimizer:
 
 class BaseConvexOptimizer(BaseOptimizer):
     """
+    Base class for convex portfolio optimization using cvxpy.
+
     The BaseConvexOptimizer contains many private variables for use by
     ``cvxpy``. For example, the immutable optimization variable for weights
     is stored as self._w. Interacting directly with these variables directly
     is discouraged.
 
-    Instance variables:
+    Attributes
+    ----------
+    n_assets : int
+        Number of assets in the portfolio.
+    tickers : list
+        List of asset tickers/identifiers.
+    weights : np.ndarray or None
+        Optimized portfolio weights.
 
-    - ``n_assets`` - int
-    - ``tickers`` - str list
-    - ``weights`` - np.ndarray
-    - ``_opt`` - cp.Problem
-    - ``_solver`` - str
-    - ``_solver_options`` - {str: str} dict
-
-    Public methods:
-
-    - ``add_objective()`` adds a (convex) objective to the optimization problem
-    - ``add_constraint()`` adds a constraint to the optimization problem
-    - ``convex_objective()`` solves for a generic convex objective with linear constraints
-    - ``nonconvex_objective()`` solves for a generic nonconvex objective using the scipy backend.
-      This is prone to getting stuck in local minima and is generally *not* recommended.
-    - ``set_weights()`` creates self.weights (np.ndarray) from a weights dict
-    - ``clean_weights()`` rounds the weights and clips near-zeros.
-    - ``save_weights_to_file()`` saves the weights to csv, json, or txt.
+    Notes
+    -----
+    This class provides the foundation for convex optimization methods
+    including min_volatility, max_sharpe, and efficient_frontier methods.
     """
 
     def __init__(
@@ -160,16 +219,24 @@ class BaseConvexOptimizer(BaseOptimizer):
         solver_options=None,
     ):
         """
-        :param weight_bounds: minimum and maximum weight of each asset OR single min/max pair
-                              if all identical, defaults to (0, 1). Must be changed to (-1, 1)
-                              for portfolios with shorting.
-        :type weight_bounds: tuple OR tuple list, optional
-        :param solver: name of solver. list available solvers with: ``cvxpy.installed_solvers()``
-        :type solver: str, optional.
-        :param verbose: whether performance and debugging info should be printed, defaults to False
-        :type verbose: bool, optional
-        :param solver_options: parameters for the given solver
-        :type solver_options: dict, optional
+        Initialize the BaseConvexOptimizer.
+
+        Parameters
+        ----------
+        n_assets : int
+            Number of assets in the portfolio.
+        tickers : list, optional
+            List of asset names/tickers.
+        weight_bounds : tuple or list, optional
+            Minimum and maximum weight of each asset OR single min/max pair
+            if all identical. Defaults to (0, 1). Must be changed to (-1, 1)
+            for portfolios with shorting.
+        solver : str, optional
+            Name of solver. List available solvers with ``cvxpy.installed_solvers()``.
+        verbose : bool, optional
+            Whether performance and debugging info should be printed. Defaults to False.
+        solver_options : dict, optional
+            Additional parameters for the given solver.
         """
         super().__init__(n_assets, tickers)
 
@@ -188,10 +255,17 @@ class BaseConvexOptimizer(BaseOptimizer):
 
     def deepcopy(self):
         """
-        Returns a custom deep copy of the optimizer. This is necessary because
-        ``cvxpy`` expressions do not support deepcopy, but the mutable arguments need to be
-        copied to avoid unintended side effects. Instead, we create a shallow copy
-        of the optimizer and then manually copy the mutable arguments.
+        Return a custom deep copy of the optimizer.
+
+        This is necessary because ``cvxpy`` expressions do not support deepcopy,
+        but the mutable arguments need to be copied to avoid unintended side effects.
+        Instead, we create a shallow copy of the optimizer and then manually copy
+        the mutable arguments.
+
+        Returns
+        -------
+        BaseConvexOptimizer
+            A copy of the optimizer with copied mutable arguments.
         """
         self_copy = copy.copy(self)
         self_copy._additional_objectives = [
@@ -202,14 +276,18 @@ class BaseConvexOptimizer(BaseOptimizer):
 
     def _map_bounds_to_constraints(self, test_bounds):
         """
-        Convert input bounds into a form acceptable by cvxpy and add to the constraints list.
+        Convert input bounds into cvxpy constraints.
 
-        :param test_bounds: minimum and maximum weight of each asset OR single min/max pair
-                            if all identical OR pair of arrays corresponding to lower/upper bounds. defaults to (0, 1).
-        :type test_bounds: tuple OR list/tuple of tuples OR pair of np arrays
-        :raises TypeError: if ``test_bounds`` is not of the right type
-        :return: bounds suitable for cvxpy
-        :rtype: tuple pair of np.ndarray
+        Parameters
+        ----------
+        test_bounds : tuple or list
+            Minimum and maximum weight of each asset OR single min/max pair
+            if all identical OR pair of arrays corresponding to lower/upper bounds.
+
+        Raises
+        ------
+        TypeError
+            If test_bounds is not of the right type.
         """
         # If it is a collection with the right length, assume they are all bounds.
         if len(test_bounds) == self.n_assets and not isinstance(
@@ -240,6 +318,24 @@ class BaseConvexOptimizer(BaseOptimizer):
         self.add_constraint(lambda w: w <= self._upper_bounds)
 
     def is_parameter_defined(self, parameter_name: str) -> bool:
+        """
+        Check if a named parameter is defined in the optimization problem.
+
+        Parameters
+        ----------
+        parameter_name : str
+            The name of the parameter to check.
+
+        Returns
+        -------
+        bool
+            True if the parameter is defined, False otherwise.
+
+        Raises
+        ------
+        InstantiationError
+            If the parameter name is defined multiple times.
+        """
         is_defined = False
         objective_and_constraints = (
             self._constraints + [self._objective]
@@ -260,6 +356,21 @@ class BaseConvexOptimizer(BaseOptimizer):
         return is_defined
 
     def update_parameter_value(self, parameter_name: str, new_value: float) -> None:
+        """
+        Update the value of a named parameter in the optimization problem.
+
+        Parameters
+        ----------
+        parameter_name : str
+            The name of the parameter to update.
+        new_value : float
+            The new value for the parameter.
+
+        Raises
+        ------
+        InstantiationError
+            If the parameter has not been defined or was not updated.
+        """
         if not self.is_parameter_defined(parameter_name):
             raise exceptions.InstantiationError("Parameter has not been defined")
         was_updated = False
@@ -281,10 +392,22 @@ class BaseConvexOptimizer(BaseOptimizer):
 
     def _solve_cvxpy_opt_problem(self):
         """
-        Helper method to solve the cvxpy problem and check output,
-        once objectives and constraints have been defined
+        Solve the cvxpy optimization problem.
 
-        :raises exceptions.OptimizationError: if problem is not solvable by cvxpy
+        Helper method to solve the cvxpy problem and check output,
+        once objectives and constraints have been defined.
+
+        Returns
+        -------
+        OrderedDict
+            The optimized portfolio weights.
+
+        Raises
+        ------
+        OptimizationError
+            If the problem is not solvable by cvxpy.
+        InstantiationError
+            If objectives or constraints were changed after initial optimization.
         """
         try:
             if self._opt is None:
@@ -320,18 +443,32 @@ class BaseConvexOptimizer(BaseOptimizer):
 
     def add_objective(self, new_objective, **kwargs):
         """
-        Add a new term into the objective function. This term must be convex,
-        and built from cvxpy atomic functions.
+        Add a new term into the objective function.
 
-        Example::
+        This term must be convex and built from cvxpy atomic functions.
 
-            def L1_norm(w, k=1):
-                return k * cp.norm(w, 1)
+        Parameters
+        ----------
+        new_objective : callable
+            A function that takes the weight variable and returns a cvxpy expression.
+            Signature should be (w, **kwargs) -> cp.Expression.
+        **kwargs : dict
+            Additional arguments to pass to the objective function.
 
-            ef.add_objective(L1_norm, k=2)
+        Raises
+        ------
+        InstantiationError
+            If called after the problem has already been solved.
 
-        :param new_objective: the objective to be added
-        :type new_objective: cp.Expression (i.e function of cp.Variable)
+        Examples
+        --------
+        >>> import cvxpy as cp
+        >>> from pypfopt import EfficientFrontier
+        >>> def L1_norm(w, k=1):
+        ...     return k * cp.norm(w, 1)
+        >>> # ef = EfficientFrontier(mu, S)
+        >>> # ef.add_objective(L1_norm, k=2)
+        >>> # ef.min_volatility()
         """
         if self._opt is not None:
             raise exceptions.InstantiationError(
@@ -342,17 +479,32 @@ class BaseConvexOptimizer(BaseOptimizer):
 
     def add_constraint(self, new_constraint):
         """
-        Add a new constraint to the optimization problem. This constraint must satisfy DCP rules,
-        i.e be either a linear equality constraint or convex inequality constraint.
+        Add a new constraint to the optimization problem.
 
-        Examples::
+        This constraint must satisfy DCP rules, i.e., be either a linear
+        equality constraint or convex inequality constraint.
 
-            ef.add_constraint(lambda x : x[0] == 0.02)
-            ef.add_constraint(lambda x : x >= 0.01)
-            ef.add_constraint(lambda x: x <= np.array([0.01, 0.08, ..., 0.5]))
+        Parameters
+        ----------
+        new_constraint : callable
+            A callable (e.g., lambda function) that takes the weight variable
+            and returns a cvxpy constraint expression.
 
-        :param new_constraint: the constraint to be added
-        :type new_constraint: callable (e.g lambda function)
+        Raises
+        ------
+        TypeError
+            If new_constraint is not callable.
+        InstantiationError
+            If called after the problem has already been solved.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientFrontier
+        >>> import numpy as np
+        >>> # ef = EfficientFrontier(mu, S)
+        >>> # ef.add_constraint(lambda x: x[0] == 0.02)
+        >>> # ef.add_constraint(lambda x: x >= 0.01)
+        >>> # ef.add_constraint(lambda x: x <= np.array([0.01, 0.08, ..., 0.5]))
         """
         if not callable(new_constraint):
             raise TypeError(
@@ -406,24 +558,40 @@ class BaseConvexOptimizer(BaseOptimizer):
 
     def convex_objective(self, custom_objective, weights_sum_to_one=True, **kwargs):
         """
-        Optimize a custom convex objective function. Constraints should be added with
-        ``ef.add_constraint()``. Optimizer arguments must be passed as keyword-args. Example::
+        Optimize a custom convex objective function.
 
-            # Could define as a lambda function instead
-            def logarithmic_barrier(w, cov_matrix, k=0.1):
-                # 60 Years of Portfolio Optimization, Kolm et al (2014)
-                return cp.quad_form(w, cov_matrix) - k * cp.sum(cp.log(w))
+        Constraints should be added with ``add_constraint()``. Optimizer arguments
+        must be passed as keyword-args.
 
-            w = ef.convex_objective(logarithmic_barrier, cov_matrix=ef.cov_matrix)
+        Parameters
+        ----------
+        custom_objective : callable
+            An objective function to be MINIMISED. This should be written using
+            cvxpy atoms. Signature: (w, **kwargs) -> cp.Expression.
+        weights_sum_to_one : bool, optional
+            Whether to add the constraint that weights sum to one. Defaults to True.
+        **kwargs : dict
+            Arguments to pass to the objective function.
 
-        :param custom_objective: an objective function to be MINIMISED. This should be written using
-                                 cvxpy atoms Should map (w, `**kwargs`) -> float.
-        :type custom_objective: function with signature (cp.Variable, `**kwargs`) -> cp.Expression
-        :param weights_sum_to_one: whether to add the default objective, defaults to True
-        :type weights_sum_to_one: bool, optional
-        :raises OptimizationError: if the objective is nonconvex or constraints nonlinear.
-        :return: asset weights for the efficient risk portfolio
-        :rtype: OrderedDict
+        Returns
+        -------
+        OrderedDict
+            Asset weights for the optimal portfolio.
+
+        Raises
+        ------
+        OptimizationError
+            If the objective is nonconvex or constraints are nonlinear.
+
+        Examples
+        --------
+        >>> import cvxpy as cp
+        >>> from pypfopt import EfficientFrontier
+        >>> def logarithmic_barrier(w, cov_matrix, k=0.1):
+        ...     # 60 Years of Portfolio Optimization, Kolm et al (2014)
+        ...     return cp.quad_form(w, cov_matrix) - k * cp.sum(cp.log(w))
+        >>> # ef = EfficientFrontier(mu, S)
+        >>> # w = ef.convex_objective(logarithmic_barrier, cov_matrix=ef.cov_matrix)
         """
         # custom_objective must have the right signature (w, **kwargs)
         self._objective = custom_objective(self._w, **kwargs)
@@ -446,41 +614,51 @@ class BaseConvexOptimizer(BaseOptimizer):
         initial_guess=None,
     ):
         """
-        Optimize some objective function using the scipy backend. This can
-        support nonconvex objectives and nonlinear constraints, but may get stuck
-        at local minima. Example::
+        Optimize a nonconvex objective using the scipy backend.
 
-            # Market-neutral efficient risk
-            constraints = [
-                {"type": "eq", "fun": lambda w: np.sum(w)},  # weights sum to zero
-                {
-                    "type": "eq",
-                    "fun": lambda w: target_risk ** 2 - np.dot(w.T, np.dot(ef.cov_matrix, w)),
-                },  # risk = target_risk
-            ]
-            ef.nonconvex_objective(
-                lambda w, mu: -w.T.dot(mu),  # min negative return (i.e maximise return)
-                objective_args=(ef.expected_returns,),
-                weights_sum_to_one=False,
-                constraints=constraints,
-            )
+        This method can support nonconvex objectives and nonlinear constraints,
+        but may get stuck at local minima. Use with caution.
 
-        :param objective_function: an objective function to be MINIMISED. This function
-                                   should map (weight, args) -> cost
-        :type objective_function: function with signature (np.ndarray, args) -> float
-        :param objective_args: arguments for the objective function (excluding weight)
-        :type objective_args: tuple of np.ndarrays
-        :param weights_sum_to_one: whether to add the default objective, defaults to True
-        :type weights_sum_to_one: bool, optional
-        :param constraints: list of constraints in the scipy format (i.e dicts)
-        :type constraints: dict list
-        :param solver: which SCIPY solver to use, e.g "SLSQP", "COBYLA", "BFGS".
-                       User beware: different optimizers require different inputs.
-        :type solver: string
-        :param initial_guess: the initial guess for the weights, shape (n,) or (n, 1)
-        :type initial_guess: np.ndarray
-        :return: asset weights that optimize the custom objective
-        :rtype: OrderedDict
+        Parameters
+        ----------
+        custom_objective : callable
+            An objective function to be MINIMISED. This function should map
+            (weight, args) -> cost.
+        objective_args : tuple, optional
+            Arguments for the objective function (excluding weight).
+        weights_sum_to_one : bool, optional
+            Whether to add the constraint that weights sum to one. Defaults to True.
+        constraints : list of dict, optional
+            List of constraints in the scipy format.
+        solver : str, optional
+            Which scipy solver to use, e.g., "SLSQP", "COBYLA", "BFGS".
+            User beware: different optimizers require different inputs. Defaults to "SLSQP".
+        initial_guess : np.ndarray, optional
+            The initial guess for the weights, shape (n,) or (n, 1).
+            Defaults to equal weights.
+
+        Returns
+        -------
+        OrderedDict
+            Asset weights that optimize the custom objective.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from pypfopt import EfficientFrontier
+        >>> # Market-neutral efficient risk
+        >>> # target_risk = 0.15
+        >>> # constraints = [
+        >>> #     {"type": "eq", "fun": lambda w: np.sum(w)},  # weights sum to zero
+        >>> #     {"type": "eq", "fun": lambda w: target_risk ** 2 - np.dot(w.T, np.dot(ef.cov_matrix, w))},
+        >>> # ]
+        >>> # ef = EfficientFrontier(mu, S)
+        >>> # ef.nonconvex_objective(
+        >>> #     lambda w, mu: -w.T.dot(mu),
+        >>> #     objective_args=(ef.expected_returns,),
+        >>> #     weights_sum_to_one=False,
+        >>> #     constraints=constraints,
+        >>> # )
         """
         # Sanitise inputs
         if not isinstance(objective_args, tuple):
@@ -516,23 +694,50 @@ def portfolio_performance(
     weights, expected_returns, cov_matrix, verbose=False, risk_free_rate=0.0
 ):
     """
-    After optimising, calculate (and optionally print) the performance of the optimal
-    portfolio. Currently calculates expected return, volatility, and the Sharpe ratio.
+    Calculate the performance of a portfolio.
 
-    :param expected_returns: expected returns for each asset. Can be None if
-                             optimising for volatility only (but not recommended).
-    :type expected_returns: np.ndarray or pd.Series
-    :param cov_matrix: covariance of returns for each asset
-    :type cov_matrix: np.array or pd.DataFrame
-    :param weights: weights or assets
-    :type weights: list, np.array or dict, optional
-    :param verbose: whether performance should be printed, defaults to False
-    :type verbose: bool, optional
-    :param risk_free_rate: risk-free rate of borrowing/lending, defaults to 0.0
-    :type risk_free_rate: float, optional
-    :raises ValueError: if weights have not been calculated yet
-    :return: expected return, volatility, Sharpe ratio.
-    :rtype: (float, float, float)
+    Calculate (and optionally print) the performance metrics of a portfolio
+    given weights, expected returns, and a covariance matrix. Currently
+    calculates expected return, volatility, and the Sharpe ratio.
+
+    Parameters
+    ----------
+    weights : list, np.ndarray, or dict
+        Portfolio weights for each asset.
+    expected_returns : np.ndarray or pd.Series
+        Expected returns for each asset. Can be None if optimising for
+        volatility only (but not recommended).
+    cov_matrix : np.ndarray or pd.DataFrame
+        Covariance of returns for each asset.
+    verbose : bool, optional
+        Whether performance should be printed. Defaults to False.
+    risk_free_rate : float, optional
+        Risk-free rate of borrowing/lending. Defaults to 0.0.
+        The period of the risk-free rate should correspond to the
+        frequency of expected returns.
+
+    Returns
+    -------
+    tuple
+        A tuple of (expected return, volatility, Sharpe ratio).
+        If expected_returns is None, returns (None, volatility, None).
+
+    Raises
+    ------
+    ValueError
+        If weights have not been calculated yet.
+        If weights add to zero or ticker names don't match.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pypfopt.base_optimizer import portfolio_performance
+    >>> weights = np.array([0.3, 0.4, 0.3])
+    >>> expected_returns = np.array([0.10, 0.12, 0.08])
+    >>> cov_matrix = np.array([[0.04, 0.01, 0.02],
+    ...                        [0.01, 0.09, 0.01],
+    ...                        [0.02, 0.01, 0.16]])
+    >>> mu, sigma, sharpe = portfolio_performance(weights, expected_returns, cov_matrix)
     """
     if isinstance(weights, dict):
         if isinstance(expected_returns, pd.Series):
@@ -580,12 +785,17 @@ def portfolio_performance(
 
 def _get_all_args(expression: cp.Expression) -> List[cp.Expression]:
     """
-    Helper function to recursively get all arguments from a cvxpy expression
+    Recursively get all arguments from a cvxpy expression.
 
-    :param expression: input cvxpy expression
-    :type expression: cp.Expression
-    :return: a list of cvxpy arguments
-    :rtype: List[cp.Expression]
+    Parameters
+    ----------
+    expression : cp.Expression
+        Input cvxpy expression.
+
+    Returns
+    -------
+    list of cp.Expression
+        A list of all cvxpy arguments in the expression.
     """
     if expression.args == []:
         return [expression]
@@ -594,7 +804,19 @@ def _get_all_args(expression: cp.Expression) -> List[cp.Expression]:
 
 
 def _flatten(alist: Iterable) -> Iterable:
-    # Helper method to flatten an iterable
+    """
+    Flatten a nested iterable.
+
+    Parameters
+    ----------
+    alist : Iterable
+        A potentially nested iterable.
+
+    Yields
+    ------
+    object
+        Individual elements from the flattened iterable.
+    """
     for v in alist:
         if isinstance(v, Iterable) and not isinstance(v, (str, bytes)):
             yield from _flatten(v)
