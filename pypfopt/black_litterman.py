@@ -1,7 +1,9 @@
 """
-The ``black_litterman`` module houses the BlackLittermanModel class, which
-generates posterior estimates of expected returns given a prior estimate and user-supplied
-views. In addition, two utility functions are defined, which calculate:
+The ``black_litterman`` module houses the BlackLittermanModel class.
+
+This module generates posterior estimates of expected returns given a prior
+estimate and user-supplied views. In addition, two utility functions are
+defined, which calculate:
 
 - market-implied prior estimate of returns
 - market-implied risk-aversion parameter
@@ -21,25 +23,38 @@ def market_implied_prior_returns(
 ):
     r"""
     Compute the prior estimate of returns implied by the market weights.
-    In other words, given each asset's contribution to the risk of the market
-    portfolio, how much are we expecting to be compensated?
+
+    Given each asset's contribution to the risk of the market portfolio,
+    how much are we expecting to be compensated?
 
     .. math::
 
         \Pi = \delta \Sigma w_{mkt}
 
-    :param market_caps: market capitalisations of all assets
-    :type market_caps: {ticker: cap} dict or pd.Series
-    :param risk_aversion: risk aversion parameter
-    :type risk_aversion: positive float
-    :param cov_matrix: covariance matrix of asset returns
-    :type cov_matrix: pd.DataFrame
-    :param risk_free_rate: risk-free rate of borrowing/lending, defaults to 0.0.
-                           You should use the appropriate time period, corresponding
-                           to the covariance matrix.
-    :type risk_free_rate: float, optional
-    :return: prior estimate of returns as implied by the market caps
-    :rtype: pd.Series
+    Parameters
+    ----------
+    market_caps : dict or pd.Series
+        Market capitalisations of all assets, e.g., ``{ticker: cap}``.
+    risk_aversion : float
+        Risk aversion parameter (must be positive).
+    cov_matrix : pd.DataFrame
+        Covariance matrix of asset returns.
+    risk_free_rate : float, optional
+        Risk-free rate of borrowing/lending, defaults to 0.0.
+        You should use the appropriate time period corresponding
+        to the covariance matrix.
+
+    Returns
+    -------
+    pd.Series
+        Prior estimate of returns as implied by the market caps.
+
+    Examples
+    --------
+    >>> from pypfopt import risk_models, black_litterman
+    >>> # S = risk_models.sample_cov(prices)
+    >>> # market_caps = {"AAPL": 1e12, "GOOG": 800e9, ...}
+    >>> # pi = black_litterman.market_implied_prior_returns(market_caps, 1.0, S)
     """
     if not isinstance(cov_matrix, pd.DataFrame):
         warnings.warn(
@@ -54,25 +69,43 @@ def market_implied_prior_returns(
 
 def market_implied_risk_aversion(market_prices, frequency=252, risk_free_rate=0.0):
     r"""
-    Calculate the market-implied risk-aversion parameter (i.e market price of risk)
-    based on market prices. For example, if the market has excess returns of 10% a year
-    with 5% variance, the risk-aversion parameter is 2, i.e you have to be compensated 2x
-    the variance.
+    Calculate the market-implied risk-aversion parameter.
+
+    Also known as the market price of risk. For example, if the market has
+    excess returns of 10% a year with 5% variance, the risk-aversion parameter
+    is 2, i.e., you have to be compensated 2x the variance.
 
     .. math::
 
         \delta = \frac{R - R_f}{\sigma^2}
 
-    :param market_prices: the (daily) prices of the market portfolio, e.g SPY.
-    :type market_prices: pd.Series with DatetimeIndex.
-    :param frequency: number of time periods in a year, defaults to 252 (the number
-                      of trading days in a year)
-    :type frequency: int, optional
-    :param risk_free_rate: annualised risk-free rate of borrowing/lending, defaults to 0.0.
-    :type risk_free_rate: float, optional
-    :raises TypeError: if market_prices cannot be parsed
-    :return: market-implied risk aversion
-    :rtype: float
+    Parameters
+    ----------
+    market_prices : pd.Series
+        The (daily) prices of the market portfolio, e.g., SPY.
+        Should have a DatetimeIndex.
+    frequency : int, optional
+        Number of time periods in a year, defaults to 252
+        (the number of trading days in a year).
+    risk_free_rate : float, optional
+        Annualised risk-free rate of borrowing/lending, defaults to 0.0.
+
+    Returns
+    -------
+    float
+        Market-implied risk aversion.
+
+    Raises
+    ------
+    TypeError
+        If market_prices cannot be parsed.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> from pypfopt import black_litterman
+    >>> # market_prices = pd.read_csv("spy_prices.csv", index_col="date", parse_dates=True)
+    >>> # delta = black_litterman.market_implied_risk_aversion(market_prices)
     """
     if not isinstance(market_prices, (pd.Series, pd.DataFrame)):
         raise TypeError("Please format market_prices as a pd.Series")

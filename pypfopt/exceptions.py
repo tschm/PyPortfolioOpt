@@ -1,14 +1,36 @@
 """
-The ``exceptions`` module houses custom exceptions. Currently implemented:
+The ``exceptions`` module houses custom exceptions.
+
+Currently implemented:
 
 - OptimizationError
+- InstantiationError
 """
 
 
 class OptimizationError(Exception):
     """
-    When an optimization routine fails – usually, this means
-    that cvxpy has not returned the "optimal" flag.
+    Exception raised when an optimization routine fails.
+
+    Usually, this means that cvxpy has not returned the "optimal" flag.
+    This can happen when the problem is infeasible, unbounded, or when
+    the solver encounters numerical difficulties.
+
+    Parameters
+    ----------
+    *args : tuple
+        Variable length argument list passed to the base Exception class.
+    **kwargs : dict
+        Arbitrary keyword arguments passed to the base Exception class.
+
+    Examples
+    --------
+    >>> from pypfopt.exceptions import OptimizationError
+    >>> try:
+    ...     raise OptimizationError("Custom message")
+    ... except OptimizationError as e:
+    ...     print("Optimization failed")
+    Optimization failed
     """
 
     def __init__(self, *args, **kwargs):
@@ -20,8 +42,20 @@ class OptimizationError(Exception):
 
 class InstantiationError(Exception):
     """
-    Errors related to the instantiation of pypfopt objects, e.g adding constraints to an
-    already-solved problem
+    Exception raised for errors related to the instantiation of pypfopt objects.
+
+    This exception is raised when attempting to perform invalid operations
+    on already-solved optimization problems, such as adding constraints
+    or objectives after the problem has been solved.
+
+    Examples
+    --------
+    >>> from pypfopt.exceptions import InstantiationError
+    >>> try:
+    ...     raise InstantiationError("Cannot modify solved problem")
+    ... except InstantiationError as e:
+    ...     print("Instantiation error occurred")
+    Instantiation error occurred
     """
 
     pass

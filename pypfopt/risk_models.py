@@ -1,17 +1,17 @@
 """
-The ``risk_models`` module provides functions for estimating the covariance matrix given
-historical returns.
+The ``risk_models`` module provides functions for estimating covariance matrices.
 
-The format of the data input is the same as that in :ref:`expected-returns`.
+This module provides functions for estimating the covariance matrix given
+historical returns. The format of the data input is the same as that in
+:ref:`expected-returns`.
 
 **Currently implemented:**
 
 - fix non-positive semidefinite matrices
-- general risk matrix function, allowing you to run any risk model from one function.
+- general risk matrix function, allowing you to run any risk model from one function
 - sample covariance
 - semicovariance
 - exponentially weighted covariance
-- minimum covariance determinant
 - shrunk covariance matrices:
 
     - manual shrinkage
@@ -32,14 +32,20 @@ from .expected_returns import returns_from_prices
 
 def _is_positive_semidefinite(matrix):
     """
-    Helper function to check if a given matrix is positive semidefinite.
-    Any method that requires inverting the covariance matrix will struggle
-    with a non-positive semidefinite matrix
+    Check if a given matrix is positive semidefinite.
 
-    :param matrix: (covariance) matrix to test
-    :type matrix: np.ndarray, pd.DataFrame
-    :return: whether matrix is positive semidefinite
-    :rtype: bool
+    Any method that requires inverting the covariance matrix will struggle
+    with a non-positive semidefinite matrix.
+
+    Parameters
+    ----------
+    matrix : np.ndarray or pd.DataFrame
+        (Covariance) matrix to test.
+
+    Returns
+    -------
+    bool
+        True if matrix is positive semidefinite, False otherwise.
     """
     try:
         # Significantly more efficient than checking eigenvalues (stackoverflow.com/questions/16266720)
@@ -51,19 +57,39 @@ def _is_positive_semidefinite(matrix):
 
 def fix_nonpositive_semidefinite(matrix, fix_method="spectral"):
     """
-    Check if a covariance matrix is positive semidefinite, and if not, fix it
-    with the chosen method.
+    Check if a covariance matrix is positive semidefinite, and if not, fix it.
 
-    The ``spectral`` method sets negative eigenvalues to zero then rebuilds the matrix,
-    while the ``diag`` method adds a small positive value to the diagonal.
+    The ``spectral`` method sets negative eigenvalues to zero then rebuilds
+    the matrix, while the ``diag`` method adds a small positive value to
+    the diagonal.
 
-    :param matrix: raw covariance matrix (may not be PSD)
-    :type matrix: pd.DataFrame
-    :param fix_method: {"spectral", "diag"}, defaults to "spectral"
-    :type fix_method: str, optional
-    :raises NotImplementedError: if a method is passed that isn't implemented
-    :return: positive semidefinite covariance matrix
-    :rtype: pd.DataFrame
+    Parameters
+    ----------
+    matrix : pd.DataFrame or np.ndarray
+        Raw covariance matrix (may not be PSD).
+    fix_method : str, optional
+        Method to fix non-PSD matrices. Must be one of {"spectral", "diag"}.
+        Defaults to "spectral".
+
+    Returns
+    -------
+    pd.DataFrame or np.ndarray
+        Positive semidefinite covariance matrix.
+
+    Raises
+    ------
+    NotImplementedError
+        If a method is passed that isn't implemented.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pypfopt import risk_models
+    >>> # Create a non-PSD matrix
+    >>> cov = np.array([[1.0, 0.9, 0.9],
+    ...                 [0.9, 1.0, 0.9],
+    ...                 [0.9, 0.9, 1.0]])
+    >>> fixed_cov = risk_models.fix_nonpositive_semidefinite(cov)
     """
     if _is_positive_semidefinite(matrix):
         return matrix
@@ -101,15 +127,15 @@ def fix_nonpositive_semidefinite(matrix, fix_method="spectral"):
 
 def risk_matrix(prices, method="sample_cov", **kwargs):
     """
-    Compute a covariance matrix, using the risk model supplied in the ``method``
-    parameter.
+    Compute a covariance matrix using the specified risk model.
 
-    :param prices: adjusted closing prices of the asset, each row is a date
-                   and each column is a ticker/id.
-    :type prices: pd.DataFrame
-    :param returns_data: if true, the first argument is returns instead of prices.
-    :type returns_data: bool, defaults to False.
-    :param method: the risk model to use. Should be one of:
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        Adjusted closing prices of assets, where each row is a date
+        and each column is a ticker/id.
+    method : str, optional
+        The risk model to use. Should be one of:
 
         - ``sample_cov``
         - ``semicovariance``
@@ -120,10 +146,26 @@ def risk_matrix(prices, method="sample_cov", **kwargs):
         - ``ledoit_wolf_constant_correlation``
         - ``oracle_approximating``
 
-    :type method: str, optional
-    :raises NotImplementedError: if the supplied method is not recognised
-    :return: annualised sample covariance matrix
-    :rtype: pd.DataFrame
+        Defaults to ``sample_cov``.
+    **kwargs : dict
+        Additional keyword arguments passed to the underlying risk model.
+
+    Returns
+    -------
+    pd.DataFrame
+        Annualised covariance matrix.
+
+    Raises
+    ------
+    NotImplementedError
+        If the supplied method is not recognised.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> from pypfopt import risk_models
+    >>> # prices = pd.read_csv("stock_prices.csv", index_col="date", parse_dates=True)
+    >>> # S = risk_models.risk_matrix(prices, method="ledoit_wolf")
     """
     if method == "sample_cov":
         return sample_cov(prices, **kwargs)
@@ -151,18 +193,33 @@ def sample_cov(prices, returns_data=False, frequency=252, log_returns=False, **k
     """
     Calculate the annualised sample covariance matrix of (daily) asset returns.
 
-    :param prices: adjusted closing prices of the asset, each row is a date
-                   and each column is a ticker/id.
-    :type prices: pd.DataFrame
-    :param returns_data: if true, the first argument is returns instead of prices.
-    :type returns_data: bool, defaults to False.
-    :param frequency: number of time periods in a year, defaults to 252 (the number
-                      of trading days in a year)
-    :type frequency: int, optional
-    :param log_returns: whether to compute using log returns
-    :type log_returns: bool, defaults to False
-    :return: annualised sample covariance matrix
-    :rtype: pd.DataFrame
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        Adjusted closing prices of assets, where each row is a date
+        and each column is a ticker/id.
+    returns_data : bool, optional
+        If True, the first argument is returns instead of prices.
+        Defaults to False.
+    frequency : int, optional
+        Number of time periods in a year, defaults to 252 (the number
+        of trading days in a year).
+    log_returns : bool, optional
+        Whether to compute using log returns. Defaults to False.
+    **kwargs : dict
+        Additional keyword arguments (e.g., fix_method for PSD fixing).
+
+    Returns
+    -------
+    pd.DataFrame
+        Annualised sample covariance matrix.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> from pypfopt import risk_models
+    >>> # prices = pd.read_csv("stock_prices.csv", index_col="date", parse_dates=True)
+    >>> # S = risk_models.sample_cov(prices)
     """
     if not isinstance(prices, pd.DataFrame):
         warnings.warn("data is not in a dataframe", RuntimeWarning)
@@ -184,28 +241,47 @@ def semicovariance(
     log_returns=False,
     **kwargs,
 ):
-    """
-    Estimate the semicovariance matrix, i.e the covariance given that
-    the returns are less than the benchmark.
+    r"""
+    Estimate the semicovariance matrix.
 
-    .. semicov = E([min(r_i - B, 0)] . [min(r_j - B, 0)])
+    The semicovariance is the covariance given that the returns are less
+    than the benchmark. It is defined as:
 
-    :param prices: adjusted closing prices of the asset, each row is a date
-                   and each column is a ticker/id.
-    :type prices: pd.DataFrame
-    :param returns_data: if true, the first argument is returns instead of prices.
-    :type returns_data: bool, defaults to False.
-    :param benchmark: the benchmark return, defaults to the daily risk-free rate, i.e
-                      :math:`1.02^{(1/252)} -1`.
-    :type benchmark: float
-    :param frequency: number of time periods in a year, defaults to 252 (the number
-                      of trading days in a year). Ensure that you use the appropriate
-                      benchmark, e.g if ``frequency=12`` use monthly benchmark returns
-    :type frequency: int, optional
-    :param log_returns: whether to compute using log returns
-    :type log_returns: bool, defaults to False
-    :return: semicovariance matrix
-    :rtype: pd.DataFrame
+    .. math::
+
+        semicov = E([min(r_i - B, 0)] \cdot [min(r_j - B, 0)])
+
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        Adjusted closing prices of assets, where each row is a date
+        and each column is a ticker/id.
+    returns_data : bool, optional
+        If True, the first argument is returns instead of prices.
+        Defaults to False.
+    benchmark : float, optional
+        The benchmark return, defaults to the daily risk-free rate,
+        i.e., :math:`1.02^{(1/252)} - 1`.
+    frequency : int, optional
+        Number of time periods in a year, defaults to 252. Ensure that
+        you use the appropriate benchmark, e.g., if ``frequency=12``
+        use monthly benchmark returns.
+    log_returns : bool, optional
+        Whether to compute using log returns. Defaults to False.
+    **kwargs : dict
+        Additional keyword arguments (e.g., fix_method for PSD fixing).
+
+    Returns
+    -------
+    pd.DataFrame
+        Semicovariance matrix.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> from pypfopt import risk_models
+    >>> # prices = pd.read_csv("stock_prices.csv", index_col="date", parse_dates=True)
+    >>> # S = risk_models.semicovariance(prices)
     """
     if not isinstance(prices, pd.DataFrame):
         warnings.warn("data is not in a dataframe", RuntimeWarning)
@@ -225,14 +301,19 @@ def _pair_exp_cov(X, Y, span=180):
     """
     Calculate the exponential covariance between two timeseries of returns.
 
-    :param X: first time series of returns
-    :type X: pd.Series
-    :param Y: second time series of returns
-    :type Y: pd.Series
-    :param span: the span of the exponential weighting function, defaults to 180
-    :type span: int, optional
-    :return: the exponential covariance between X and Y
-    :rtype: float
+    Parameters
+    ----------
+    X : pd.Series
+        First time series of returns.
+    Y : pd.Series
+        Second time series of returns.
+    span : int, optional
+        The span of the exponential weighting function, defaults to 180.
+
+    Returns
+    -------
+    float
+        The exponential covariance between X and Y.
     """
     covariation = (X - X.mean()) * (Y - Y.mean())
     # Exponentially weight the covariation and take the mean
@@ -245,23 +326,38 @@ def exp_cov(
     prices, returns_data=False, span=180, frequency=252, log_returns=False, **kwargs
 ):
     """
-    Estimate the exponentially-weighted covariance matrix, which gives
-    greater weight to more recent data.
+    Estimate the exponentially-weighted covariance matrix.
 
-    :param prices: adjusted closing prices of the asset, each row is a date
-                   and each column is a ticker/id.
-    :type prices: pd.DataFrame
-    :param returns_data: if true, the first argument is returns instead of prices.
-    :type returns_data: bool, defaults to False.
-    :param span: the span of the exponential weighting function, defaults to 180
-    :type span: int, optional
-    :param frequency: number of time periods in a year, defaults to 252 (the number
-                      of trading days in a year)
-    :type frequency: int, optional
-    :param log_returns: whether to compute using log returns
-    :type log_returns: bool, defaults to False
-    :return: annualised estimate of exponential covariance matrix
-    :rtype: pd.DataFrame
+    This method gives greater weight to more recent data.
+
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        Adjusted closing prices of assets, where each row is a date
+        and each column is a ticker/id.
+    returns_data : bool, optional
+        If True, the first argument is returns instead of prices.
+        Defaults to False.
+    span : int, optional
+        The span of the exponential weighting function, defaults to 180.
+    frequency : int, optional
+        Number of time periods in a year, defaults to 252.
+    log_returns : bool, optional
+        Whether to compute using log returns. Defaults to False.
+    **kwargs : dict
+        Additional keyword arguments (e.g., fix_method for PSD fixing).
+
+    Returns
+    -------
+    pd.DataFrame
+        Annualised estimate of exponential covariance matrix.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> from pypfopt import risk_models
+    >>> # prices = pd.read_csv("stock_prices.csv", index_col="date", parse_dates=True)
+    >>> # S = risk_models.exp_cov(prices, span=90)
     """
     if not isinstance(prices, pd.DataFrame):
         warnings.warn("data is not in a dataframe", RuntimeWarning)
@@ -325,10 +421,22 @@ def cov_to_corr(cov_matrix):
     """
     Convert a covariance matrix to a correlation matrix.
 
-    :param cov_matrix: covariance matrix
-    :type cov_matrix: pd.DataFrame
-    :return: correlation matrix
-    :rtype: pd.DataFrame
+    Parameters
+    ----------
+    cov_matrix : pd.DataFrame or np.ndarray
+        The covariance matrix.
+
+    Returns
+    -------
+    pd.DataFrame
+        The correlation matrix.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> from pypfopt import risk_models
+    >>> # S = risk_models.sample_cov(prices)
+    >>> # corr = risk_models.cov_to_corr(S)
     """
     if not isinstance(cov_matrix, pd.DataFrame):
         warnings.warn("cov_matrix is not a dataframe", RuntimeWarning)
@@ -341,14 +449,28 @@ def cov_to_corr(cov_matrix):
 
 def corr_to_cov(corr_matrix, stdevs):
     """
-    Convert a correlation matrix to a covariance matrix
+    Convert a correlation matrix to a covariance matrix.
 
-    :param corr_matrix: correlation matrix
-    :type corr_matrix: pd.DataFrame
-    :param stdevs: vector of standard deviations
-    :type stdevs: array-like
-    :return: covariance matrix
-    :rtype: pd.DataFrame
+    Parameters
+    ----------
+    corr_matrix : pd.DataFrame or np.ndarray
+        The correlation matrix.
+    stdevs : array-like
+        Vector of standard deviations for each asset.
+
+    Returns
+    -------
+    pd.DataFrame
+        The covariance matrix.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>> from pypfopt import risk_models
+    >>> corr = pd.DataFrame([[1.0, 0.5], [0.5, 1.0]])
+    >>> stdevs = np.array([0.2, 0.3])
+    >>> cov = risk_models.corr_to_cov(corr, stdevs)
     """
     if not isinstance(corr_matrix, pd.DataFrame):
         warnings.warn("corr_matrix is not a dataframe", RuntimeWarning)
@@ -359,29 +481,49 @@ def corr_to_cov(corr_matrix, stdevs):
 
 class CovarianceShrinkage:
     """
-    Provide methods for computing shrinkage estimates of the covariance matrix, using the
-    sample covariance matrix and choosing the structured estimator to be an identity matrix
-    multiplied by the average sample variance. The shrinkage constant can be input manually,
-    though there exist methods (notably Ledoit Wolf) to estimate the optimal value.
+    Provide methods for computing shrinkage estimates of the covariance matrix.
 
-    Instance variables:
+    This class uses the sample covariance matrix and shrinks it towards a
+    structured estimator (identity matrix multiplied by the average sample
+    variance). The shrinkage constant can be input manually, though there
+    exist methods (notably Ledoit Wolf) to estimate the optimal value.
 
-    - ``X`` - pd.DataFrame (returns)
-    - ``S`` - np.ndarray (sample covariance matrix)
-    - ``delta`` - float (shrinkage constant)
-    - ``frequency`` - int
+    Attributes
+    ----------
+    X : pd.DataFrame
+        Returns data.
+    S : np.ndarray
+        Sample covariance matrix.
+    delta : float or None
+        Shrinkage constant.
+    frequency : int
+        Number of time periods in a year.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> from pypfopt import risk_models
+    >>> # prices = pd.read_csv("stock_prices.csv", index_col="date", parse_dates=True)
+    >>> # cs = risk_models.CovarianceShrinkage(prices)
+    >>> # S = cs.ledoit_wolf()
     """
 
     def __init__(self, prices, returns_data=False, frequency=252, log_returns=False):
         """
-        :param prices: adjusted closing prices of the asset, each row is a date and each column is a ticker/id.
-        :type prices: pd.DataFrame
-        :param returns_data: if true, the first argument is returns instead of prices.
-        :type returns_data: bool, defaults to False.
-        :param frequency: number of time periods in a year, defaults to 252 (the number of trading days in a year)
-        :type frequency: int, optional
-        :param log_returns: whether to compute using log returns
-        :type log_returns: bool, defaults to False
+        Initialize the CovarianceShrinkage object.
+
+        Parameters
+        ----------
+        prices : pd.DataFrame
+            Adjusted closing prices of assets, where each row is a date
+            and each column is a ticker/id.
+        returns_data : bool, optional
+            If True, the first argument is returns instead of prices.
+            Defaults to False.
+        frequency : int, optional
+            Number of time periods in a year, defaults to 252.
+        log_returns : bool, optional
+            Whether to compute using log returns. Defaults to False.
         """
         if not _check_soft_dependencies(["scikit-learn"], severity="none"):
             raise ImportError(
@@ -410,13 +552,20 @@ class CovarianceShrinkage:
 
     def _format_and_annualize(self, raw_cov_array):
         """
-        Helper method which annualises the output of shrinkage calculations,
-        and formats the result into a dataframe
+        Format and annualize shrinkage calculation output.
 
-        :param raw_cov_array: raw covariance matrix of daily returns
-        :type raw_cov_array: np.ndarray
-        :return: annualised covariance matrix
-        :rtype: pd.DataFrame
+        Helper method which annualises the output of shrinkage calculations,
+        and formats the result into a dataframe.
+
+        Parameters
+        ----------
+        raw_cov_array : np.ndarray
+            Raw covariance matrix of daily returns.
+
+        Returns
+        -------
+        pd.DataFrame
+            Annualised covariance matrix.
         """
         assets = self.X.columns
         cov = pd.DataFrame(raw_cov_array, index=assets, columns=assets) * self.frequency
@@ -424,14 +573,29 @@ class CovarianceShrinkage:
 
     def shrunk_covariance(self, delta=0.2):
         """
-        Shrink a sample covariance matrix to the identity matrix (scaled by the average
-        sample variance). This method does not estimate an optimal shrinkage parameter,
+        Shrink a sample covariance matrix to the identity matrix.
+
+        The identity matrix is scaled by the average sample variance.
+        This method does not estimate an optimal shrinkage parameter;
         it requires manual input.
 
-        :param delta: shrinkage parameter, defaults to 0.2.
-        :type delta: float, optional
-        :return: shrunk sample covariance matrix
-        :rtype: np.ndarray
+        Parameters
+        ----------
+        delta : float, optional
+            Shrinkage parameter, defaults to 0.2. Should be between 0 and 1.
+
+        Returns
+        -------
+        pd.DataFrame
+            Shrunk sample covariance matrix.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> from pypfopt import risk_models
+        >>> # prices = pd.read_csv("stock_prices.csv", index_col="date", parse_dates=True)
+        >>> # cs = risk_models.CovarianceShrinkage(prices)
+        >>> # S = cs.shrunk_covariance(delta=0.3)
         """
         self.delta = delta
         N = self.S.shape[1]
@@ -444,16 +608,34 @@ class CovarianceShrinkage:
 
     def ledoit_wolf(self, shrinkage_target="constant_variance"):
         """
-        Calculate the Ledoit-Wolf shrinkage estimate for a particular
-        shrinkage target.
+        Calculate the Ledoit-Wolf shrinkage estimate.
 
-        :param shrinkage_target: choice of shrinkage target, either ``constant_variance``,
-                                 ``single_factor`` or ``constant_correlation``. Defaults to
-                                 ``constant_variance``.
-        :type shrinkage_target: str, optional
-        :raises NotImplementedError: if the shrinkage_target is unrecognised
-        :return: shrunk sample covariance matrix
-        :rtype: np.ndarray
+        Parameters
+        ----------
+        shrinkage_target : str, optional
+            Choice of shrinkage target. Must be one of:
+
+            - ``constant_variance`` (default)
+            - ``single_factor``
+            - ``constant_correlation``
+
+        Returns
+        -------
+        pd.DataFrame
+            Shrunk sample covariance matrix.
+
+        Raises
+        ------
+        NotImplementedError
+            If the shrinkage_target is unrecognised.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> from pypfopt import risk_models
+        >>> # prices = pd.read_csv("stock_prices.csv", index_col="date", parse_dates=True)
+        >>> # cs = risk_models.CovarianceShrinkage(prices)
+        >>> # S = cs.ledoit_wolf(shrinkage_target="constant_correlation")
         """
         if shrinkage_target == "constant_variance":
             X = np.nan_to_num(self.X.values)
@@ -471,12 +653,20 @@ class CovarianceShrinkage:
 
     def _ledoit_wolf_single_factor(self):
         """
+        Calculate Ledoit-Wolf shrinkage with single-factor target.
+
         Helper method to calculate the Ledoit-Wolf shrinkage estimate
         with the Sharpe single-factor matrix as the shrinkage target.
         See Ledoit and Wolf (2001).
 
-        :return: shrunk sample covariance matrix, shrinkage constant
-        :rtype: np.ndarray, float
+        Returns
+        -------
+        tuple
+            A tuple of (shrunk_cov, delta) where:
+            - shrunk_cov : np.ndarray
+                Shrunk sample covariance matrix.
+            - delta : float
+                The shrinkage constant.
         """
         X = np.nan_to_num(self.X.values)
 
@@ -526,12 +716,20 @@ class CovarianceShrinkage:
 
     def _ledoit_wolf_constant_correlation(self):
         """
+        Calculate Ledoit-Wolf shrinkage with constant correlation target.
+
         Helper method to calculate the Ledoit-Wolf shrinkage estimate
         with the constant correlation matrix as the shrinkage target.
-        See Ledoit and Wolf (2003)
+        See Ledoit and Wolf (2003).
 
-        :return: shrunk sample covariance matrix, shrinkage constant
-        :rtype: np.ndarray, float
+        Returns
+        -------
+        tuple
+            A tuple of (shrunk_cov, delta) where:
+            - shrunk_cov : np.ndarray
+                Shrunk sample covariance matrix.
+            - delta : float
+                The shrinkage constant.
         """
         X = np.nan_to_num(self.X.values)
         t, n = np.shape(X)
@@ -579,10 +777,20 @@ class CovarianceShrinkage:
 
     def oracle_approximating(self):
         """
-        Calculate the Oracle Approximating Shrinkage estimate
+        Calculate the Oracle Approximating Shrinkage estimate.
 
-        :return: shrunk sample covariance matrix
-        :rtype: np.ndarray
+        Returns
+        -------
+        pd.DataFrame
+            Shrunk sample covariance matrix.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> from pypfopt import risk_models
+        >>> # prices = pd.read_csv("stock_prices.csv", index_col="date", parse_dates=True)
+        >>> # cs = risk_models.CovarianceShrinkage(prices)
+        >>> # S = cs.oracle_approximating()
         """
         X = np.nan_to_num(self.X.values)
         shrunk_cov, self.delta = self.covariance.oas(X)

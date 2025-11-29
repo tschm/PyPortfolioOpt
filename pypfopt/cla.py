@@ -1,7 +1,8 @@
 """
-The ``cla`` module houses the CLA class, which
-generates optimal portfolios using the Critical Line Algorithm as implemented
-by Marcos Lopez de Prado and David Bailey.
+The ``cla`` module houses the CLA class.
+
+This module generates optimal portfolios using the Critical Line Algorithm
+as implemented by Marcos Lopez de Prado and David Bailey.
 """
 
 import numpy as np
@@ -12,53 +13,69 @@ from . import base_optimizer
 
 class CLA(base_optimizer.BaseOptimizer):
     """
-    Instance variables:
+    Construct a portfolio using the Critical Line Algorithm.
 
-    - Inputs:
+    The CLA class generates optimal portfolios along the efficient frontier
+    using the Critical Line Algorithm.
 
-        - ``n_assets`` - int
-        - ``tickers`` - str list
-        - ``mean`` - np.ndarray
-        - ``cov_matrix`` - np.ndarray
-        - ``expected_returns`` - np.ndarray
-        - ``lb`` - np.ndarray
-        - ``ub`` - np.ndarray
+    Attributes
+    ----------
+    n_assets : int
+        Number of assets.
+    tickers : list
+        List of asset tickers.
+    mean : np.ndarray
+        Expected returns vector.
+    cov_matrix : np.ndarray
+        Covariance matrix.
+    expected_returns : np.ndarray
+        Expected returns for each asset.
+    lB : np.ndarray
+        Lower bounds for weights.
+    uB : np.ndarray
+        Upper bounds for weights.
+    w : list of np.ndarray
+        Solutions at each turning point.
+    ls : list of float
+        Lambda values at each turning point.
+    g : list of float
+        Gamma values at each turning point.
+    f : list of list
+        Free weight indices at each turning point.
+    weights : np.ndarray
+        Optimized portfolio weights.
+    frontier_values : tuple or None
+        Result of computing efficient frontier (mu, sigma, weights).
 
-    - Optimization parameters:
-
-        - ``w`` - np.ndarray list
-        - ``ls`` - float list
-        - ``g`` - float list
-        - ``f`` - float list list
-
-    - Outputs:
-
-        - ``weights`` - np.ndarray
-        - ``frontier_values`` - (float list, float list, np.ndarray list)
-
-    Public methods:
-
-    - ``max_sharpe()`` optimizes for maximal Sharpe ratio (a.k.a the tangency portfolio)
-    - ``min_volatility()`` optimizes for minimum volatility
-    - ``efficient_frontier()`` computes the entire efficient frontier
-    - ``portfolio_performance()`` calculates the expected return, volatility and Sharpe ratio for
-      the optimized portfolio.
-    - ``clean_weights()`` rounds the weights and clips near-zeros.
-    - ``save_weights_to_file()`` saves the weights to csv, json, or txt.
+    Examples
+    --------
+    >>> from pypfopt import CLA, expected_returns, risk_models
+    >>> # mu = expected_returns.mean_historical_return(prices)
+    >>> # S = risk_models.sample_cov(prices)
+    >>> # cla = CLA(mu, S)
+    >>> # weights = cla.max_sharpe()
     """
 
     def __init__(self, expected_returns, cov_matrix, weight_bounds=(0, 1)):
         """
-        :param expected_returns: expected returns for each asset. Set to None if
-                                 optimising for volatility only.
-        :type expected_returns: pd.Series, list, np.ndarray
-        :param cov_matrix: covariance of returns for each asset
-        :type cov_matrix: pd.DataFrame or np.array
-        :param weight_bounds: minimum and maximum weight of an asset, defaults to (0, 1).
-                              Must be changed to (-1, 1) for portfolios with shorting.
-        :type weight_bounds: tuple (float, float) or (list/ndarray, list/ndarray) or list(tuple(float, float))
-        :raises TypeError: if ``expected_returns`` is not a series, list or array
-        :raises TypeError: if ``cov_matrix`` is not a dataframe or array
+        Initialize the CLA object.
+
+        Parameters
+        ----------
+        expected_returns : pd.Series, list, or np.ndarray
+            Expected returns for each asset. Set to None if
+            optimising for volatility only.
+        cov_matrix : pd.DataFrame or np.ndarray
+            Covariance of returns for each asset.
+        weight_bounds : tuple or list, optional
+            Minimum and maximum weight of an asset, defaults to (0, 1).
+            Must be changed to (-1, 1) for portfolios with shorting.
+
+        Raises
+        ------
+        TypeError
+            If ``expected_returns`` is not a series, list or array.
+            If ``cov_matrix`` is not a dataframe or array.
         """
         # Initialize the class
         self.mean = np.array(expected_returns).reshape((len(expected_returns), 1))
@@ -99,12 +116,17 @@ class CLA(base_optimizer.BaseOptimizer):
     @staticmethod
     def _infnone(x):
         """
-        Helper method to map None to float infinity.
+        Map None to float infinity.
 
-        :param x: argument
-        :type x: float
-        :return: infinity if the argument was None otherwise x
-        :rtype: float
+        Parameters
+        ----------
+        x : float or None
+            Argument to check.
+
+        Returns
+        -------
+        float
+            Negative infinity if the argument was None, otherwise x.
         """
         return float("-inf") if x is None else x
 
@@ -373,8 +395,16 @@ class CLA(base_optimizer.BaseOptimizer):
         """
         Maximise the Sharpe ratio.
 
-        :return: asset weights for the max-sharpe portfolio
-        :rtype: OrderedDict
+        Returns
+        -------
+        OrderedDict
+            Asset weights for the max-Sharpe portfolio.
+
+        Examples
+        --------
+        >>> from pypfopt import CLA
+        >>> # cla = CLA(mu, S)
+        >>> # weights = cla.max_sharpe()
         """
         if not self.w:
             self._solve()
@@ -393,10 +423,18 @@ class CLA(base_optimizer.BaseOptimizer):
 
     def min_volatility(self):
         """
-        Minimise volatility.
+        Minimise portfolio volatility.
 
-        :return: asset weights for the volatility-minimising portfolio
-        :rtype: OrderedDict
+        Returns
+        -------
+        OrderedDict
+            Asset weights for the volatility-minimising portfolio.
+
+        Examples
+        --------
+        >>> from pypfopt import CLA
+        >>> # cla = CLA(mu, S)
+        >>> # weights = cla.min_volatility()
         """
         if not self.w:
             self._solve()
@@ -410,13 +448,28 @@ class CLA(base_optimizer.BaseOptimizer):
 
     def efficient_frontier(self, points=100):
         """
-        Efficiently compute the entire efficient frontier
+        Compute the entire efficient frontier.
 
-        :param points: rough number of points to evaluate, defaults to 100
-        :type points: int, optional
-        :raises ValueError: if weights have not been computed
-        :return: return list, std list, weight list
-        :rtype: (float list, float list, np.ndarray list)
+        Parameters
+        ----------
+        points : int, optional
+            Rough number of points to evaluate, defaults to 100.
+
+        Returns
+        -------
+        tuple
+            A tuple of (returns list, std list, weights list).
+
+        Raises
+        ------
+        ValueError
+            If weights have not been computed.
+
+        Examples
+        --------
+        >>> from pypfopt import CLA
+        >>> # cla = CLA(mu, S)
+        >>> # mu, sigma, weights = cla.efficient_frontier(points=50)
         """
         if not self.w:
             self._solve()
@@ -440,21 +493,47 @@ class CLA(base_optimizer.BaseOptimizer):
         return mu, sigma, weights
 
     def set_weights(self, _):
-        # Overrides parent method since set_weights does nothing.
+        """
+        Override parent method.
+
+        Raises
+        ------
+        NotImplementedError
+            Always, as set_weights is not applicable for CLA.
+        """
         raise NotImplementedError("set_weights does nothing for CLA")
 
     def portfolio_performance(self, verbose=False, risk_free_rate=0.0):
         """
-        After optimising, calculate (and optionally print) the performance of the optimal
-        portfolio. Currently calculates expected return, volatility, and the Sharpe ratio.
+        Calculate the performance of the optimal portfolio.
 
-        :param verbose: whether performance should be printed, defaults to False
-        :type verbose: bool, optional
-        :param risk_free_rate: risk-free rate of borrowing/lending, defaults to 0.0
-        :type risk_free_rate: float, optional
-        :raises ValueError: if weights have not been calculated yet
-        :return: expected return, volatility, Sharpe ratio.
-        :rtype: (float, float, float)
+        After optimising, calculate (and optionally print) the performance
+        of the optimal portfolio. Currently calculates expected return,
+        volatility, and the Sharpe ratio.
+
+        Parameters
+        ----------
+        verbose : bool, optional
+            Whether performance should be printed, defaults to False.
+        risk_free_rate : float, optional
+            Risk-free rate of borrowing/lending, defaults to 0.0.
+
+        Returns
+        -------
+        tuple
+            A tuple of (expected return, volatility, Sharpe ratio).
+
+        Raises
+        ------
+        ValueError
+            If weights have not been calculated yet.
+
+        Examples
+        --------
+        >>> from pypfopt import CLA
+        >>> # cla = CLA(mu, S)
+        >>> # cla.max_sharpe()
+        >>> # mu, sigma, sharpe = cla.portfolio_performance(verbose=True)
         """
         return base_optimizer.portfolio_performance(
             self.weights,

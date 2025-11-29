@@ -1,6 +1,7 @@
 """
-The ``efficient_semivariance`` submodule houses the EfficientSemivariance class, which
-generates portfolios along the mean-semivariance frontier.
+The ``efficient_semivariance`` submodule houses the EfficientSemivariance class.
+
+This module generates portfolios along the mean-semivariance frontier.
 """
 
 import cvxpy as cp
@@ -12,39 +13,38 @@ from .efficient_frontier import EfficientFrontier
 
 class EfficientSemivariance(EfficientFrontier):
     """
-    EfficientSemivariance objects allow for optimization along the mean-semivariance frontier.
-    This may be relevant for users who are more concerned about downside deviation.
+    Optimization along the mean-semivariance frontier.
 
-    Instance variables:
+    EfficientSemivariance objects allow for optimization along the
+    mean-semivariance frontier. This may be relevant for users who are
+    more concerned about downside deviation.
 
-    - Inputs:
+    Attributes
+    ----------
+    n_assets : int
+        Number of assets.
+    tickers : list
+        List of asset tickers.
+    bounds : tuple or list
+        Weight bounds for each asset.
+    returns : pd.DataFrame
+        Historical returns data.
+    expected_returns : np.ndarray
+        Expected returns for each asset.
+    solver : str
+        CVXPY solver name.
+    solver_options : dict
+        Solver parameters.
+    weights : np.ndarray
+        Optimized portfolio weights.
 
-        - ``n_assets`` - int
-        - ``tickers`` - str list
-        - ``bounds`` - float tuple OR (float tuple) list
-        - ``returns`` - pd.DataFrame
-        - ``expected_returns`` - np.ndarray
-        - ``solver`` - str
-        - ``solver_options`` - {str: str} dict
-
-
-    - Output: ``weights`` - np.ndarray
-
-    Public methods:
-
-    - ``min_semivariance()`` minimises the portfolio semivariance (downside deviation)
-    - ``max_quadratic_utility()`` maximises the "downside quadratic utility", given some risk aversion.
-    - ``efficient_risk()`` maximises return for a given target semideviation
-    - ``efficient_return()`` minimises semideviation for a given target return
-    - ``add_objective()`` adds a (convex) objective to the optimization problem
-    - ``add_constraint()`` adds a constraint to the optimization problem
-    - ``convex_objective()`` solves for a generic convex objective with linear constraints
-
-    - ``portfolio_performance()`` calculates the expected return, semideviation and Sortino ratio for
-      the optimized portfolio.
-    - ``set_weights()`` creates self.weights (np.ndarray) from a weights dict
-    - ``clean_weights()`` rounds the weights and clips near-zeros.
-    - ``save_weights_to_file()`` saves the weights to csv, json, or txt.
+    Examples
+    --------
+    >>> from pypfopt import EfficientSemivariance, expected_returns
+    >>> # mu = expected_returns.mean_historical_return(prices)
+    >>> # returns = expected_returns.returns_from_prices(prices)
+    >>> # es = EfficientSemivariance(mu, returns)
+    >>> # weights = es.min_semivariance()
     """
 
     def __init__(
@@ -59,31 +59,41 @@ class EfficientSemivariance(EfficientFrontier):
         solver_options=None,
     ):
         """
-        :param expected_returns: expected returns for each asset. Can be None if
-                                optimising for semideviation only.
-        :type expected_returns: pd.Series, list, np.ndarray
-        :param returns: (historic) returns for all your assets (no NaNs).
-                                 See ``expected_returns.returns_from_prices``.
-        :type returns: pd.DataFrame or np.array
-        :param frequency: number of time periods in a year, defaults to 252 (the number
-                          of trading days in a year). This must agree with the frequency
-                          parameter used in your ``expected_returns``.
-        :type frequency: int, optional
-        :param benchmark: the return threshold to distinguish "downside" and "upside".
-                          This should match the frequency of your ``returns``,
-                          i.e this should be a benchmark daily returns if your
-                          ``returns`` are also daily.
-        :param weight_bounds: minimum and maximum weight of each asset OR single min/max pair
-                              if all identical, defaults to (0, 1). Must be changed to (-1, 1)
-                              for portfolios with shorting.
-        :type weight_bounds: tuple OR tuple list, optional
-        :param solver: name of solver. list available solvers with: `cvxpy.installed_solvers()`
-        :type solver: str
-        :param verbose: whether performance and debugging info should be printed, defaults to False
-        :type verbose: bool, optional
-        :param solver_options: parameters for the given solver
-        :type solver_options: dict, optional
-        :raises TypeError: if ``expected_returns`` is not a series, list or array
+        Initialize the EfficientSemivariance object.
+
+        Parameters
+        ----------
+        expected_returns : pd.Series, list, or np.ndarray
+            Expected returns for each asset. Can be None if
+            optimising for semideviation only.
+        returns : pd.DataFrame or np.ndarray
+            (Historic) returns for all your assets (no NaNs).
+            See ``expected_returns.returns_from_prices``.
+        frequency : int, optional
+            Number of time periods in a year, defaults to 252.
+            This must agree with the frequency parameter used
+            in your ``expected_returns``.
+        benchmark : float, optional
+            The return threshold to distinguish "downside" and "upside".
+            This should match the frequency of your ``returns``,
+            i.e., this should be a benchmark daily return if your
+            ``returns`` are also daily. Defaults to 0.
+        weight_bounds : tuple or list, optional
+            Minimum and maximum weight of each asset OR single min/max pair
+            if all identical, defaults to (0, 1). Must be changed to (-1, 1)
+            for portfolios with shorting.
+        solver : str, optional
+            Name of solver. List available solvers with ``cvxpy.installed_solvers()``.
+        verbose : bool, optional
+            Whether performance and debugging info should be printed,
+            defaults to False.
+        solver_options : dict, optional
+            Parameters for the given solver.
+
+        Raises
+        ------
+        TypeError
+            If ``expected_returns`` is not a series, list or array.
         """
         # Instantiate parent
         super().__init__(
@@ -101,20 +111,48 @@ class EfficientSemivariance(EfficientFrontier):
         self._T = self.returns.shape[0]
 
     def min_volatility(self):
+        """
+        Override parent method.
+
+        Raises
+        ------
+        NotImplementedError
+            Always, as min_volatility is not available in EfficientSemivariance.
+            Use min_semivariance instead.
+        """
         raise NotImplementedError("Please use min_semivariance instead.")
 
     def max_sharpe(self, risk_free_rate=0.0):
+        """
+        Override parent method.
+
+        Raises
+        ------
+        NotImplementedError
+            Always, as max_sharpe is not available in EfficientSemivariance.
+        """
         raise NotImplementedError("Method not available in EfficientSemivariance")
 
     def min_semivariance(self, market_neutral=False):
         """
-        Minimise portfolio semivariance (see docs for further explanation).
+        Minimise portfolio semivariance (downside deviation).
 
-        :param market_neutral: whether the portfolio should be market neutral (weights sum to zero),
-                               defaults to False. Requires negative lower weight bound.
-        :param market_neutral: bool, optional
-        :return: asset weights for the volatility-minimising portfolio
-        :rtype: OrderedDict
+        Parameters
+        ----------
+        market_neutral : bool, optional
+            Whether the portfolio should be market neutral (weights sum to zero),
+            defaults to False. Requires negative lower weight bound.
+
+        Returns
+        -------
+        OrderedDict
+            Asset weights for the semivariance-minimising portfolio.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientSemivariance
+        >>> # es = EfficientSemivariance(mu, returns)
+        >>> # weights = es.min_semivariance()
         """
         p = cp.Variable(self._T, nonneg=True)
         n = cp.Variable(self._T, nonneg=True)
@@ -130,17 +168,31 @@ class EfficientSemivariance(EfficientFrontier):
 
     def max_quadratic_utility(self, risk_aversion=1, market_neutral=False):
         """
-        Maximise the given quadratic utility, using portfolio semivariance instead
-        of variance.
+        Maximise the quadratic utility using portfolio semivariance.
 
-        :param risk_aversion: risk aversion parameter (must be greater than 0),
-                              defaults to 1
-        :type risk_aversion: positive float
-        :param market_neutral: whether the portfolio should be market neutral (weights sum to zero),
-                               defaults to False. Requires negative lower weight bound.
-        :param market_neutral: bool, optional
-        :return: asset weights for the maximum-utility portfolio
-        :rtype: OrderedDict
+        Parameters
+        ----------
+        risk_aversion : float, optional
+            Risk aversion parameter (must be greater than 0), defaults to 1.
+        market_neutral : bool, optional
+            Whether the portfolio should be market neutral (weights sum to zero),
+            defaults to False. Requires negative lower weight bound.
+
+        Returns
+        -------
+        OrderedDict
+            Asset weights for the maximum-utility portfolio.
+
+        Raises
+        ------
+        ValueError
+            If risk_aversion is not greater than zero.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientSemivariance
+        >>> # es = EfficientSemivariance(mu, returns)
+        >>> # weights = es.max_quadratic_utility(risk_aversion=2)
         """
         if risk_aversion <= 0:
             raise ValueError("risk aversion coefficient must be greater than zero")
@@ -169,16 +221,28 @@ class EfficientSemivariance(EfficientFrontier):
     def efficient_risk(self, target_semideviation, market_neutral=False):
         """
         Maximise return for a target semideviation (downside standard deviation).
+
         The resulting portfolio will have a semideviation less than the target
         (but not guaranteed to be equal).
 
-        :param target_semideviation: the desired maximum semideviation of the resulting portfolio.
-        :type target_semideviation: float
-        :param market_neutral: whether the portfolio should be market neutral (weights sum to zero),
-                               defaults to False. Requires negative lower weight bound.
-        :param market_neutral: bool, optional
-        :return: asset weights for the efficient risk portfolio
-        :rtype: OrderedDict
+        Parameters
+        ----------
+        target_semideviation : float
+            The desired maximum semideviation of the resulting portfolio.
+        market_neutral : bool, optional
+            Whether the portfolio should be market neutral (weights sum to zero),
+            defaults to False. Requires negative lower weight bound.
+
+        Returns
+        -------
+        OrderedDict
+            Asset weights for the efficient risk portfolio.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientSemivariance
+        >>> # es = EfficientSemivariance(mu, returns)
+        >>> # weights = es.efficient_risk(target_semideviation=0.10)
         """
         update_existing_parameter = self.is_parameter_defined("target_semivariance")
         if update_existing_parameter:
@@ -209,15 +273,30 @@ class EfficientSemivariance(EfficientFrontier):
         """
         Minimise semideviation for a given target return.
 
-        :param target_return: the desired return of the resulting portfolio.
-        :type target_return: float
-        :param market_neutral: whether the portfolio should be market neutral (weights sum to zero),
-                               defaults to False. Requires negative lower weight bound.
-        :type market_neutral: bool, optional
-        :raises ValueError: if ``target_return`` is not a positive float
-        :raises ValueError: if no portfolio can be found with return equal to ``target_return``
-        :return: asset weights for the optimal portfolio
-        :rtype: OrderedDict
+        Parameters
+        ----------
+        target_return : float
+            The desired return of the resulting portfolio.
+        market_neutral : bool, optional
+            Whether the portfolio should be market neutral (weights sum to zero),
+            defaults to False. Requires negative lower weight bound.
+
+        Returns
+        -------
+        OrderedDict
+            Asset weights for the optimal portfolio.
+
+        Raises
+        ------
+        ValueError
+            If ``target_return`` is not a positive float.
+            If no portfolio can be found with return equal to ``target_return``.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientSemivariance
+        >>> # es = EfficientSemivariance(mu, returns)
+        >>> # weights = es.efficient_return(target_return=0.15)
         """
         if not isinstance(target_return, float) or target_return < 0:
             raise ValueError("target_return should be a positive float")
@@ -248,18 +327,37 @@ class EfficientSemivariance(EfficientFrontier):
 
     def portfolio_performance(self, verbose=False, risk_free_rate=0.0):
         """
-        After optimising, calculate (and optionally print) the performance of the optimal
-        portfolio, specifically: expected return, semideviation, Sortino ratio.
+        Calculate the performance of the optimal portfolio.
 
-        :param verbose: whether performance should be printed, defaults to False
-        :type verbose: bool, optional
-        :param risk_free_rate: risk-free rate of borrowing/lending, defaults to 0.0.
-                               The period of the risk-free rate should correspond to the
-                               frequency of expected returns.
-        :type risk_free_rate: float, optional
-        :raises ValueError: if weights have not been calculated yet
-        :return: expected return, semideviation, Sortino ratio.
-        :rtype: (float, float, float)
+        After optimising, calculate (and optionally print) the performance
+        of the optimal portfolio, specifically: expected return, semideviation,
+        Sortino ratio.
+
+        Parameters
+        ----------
+        verbose : bool, optional
+            Whether performance should be printed, defaults to False.
+        risk_free_rate : float, optional
+            Risk-free rate of borrowing/lending, defaults to 0.0.
+            The period of the risk-free rate should correspond to the
+            frequency of expected returns.
+
+        Returns
+        -------
+        tuple
+            A tuple of (expected return, semideviation, Sortino ratio).
+
+        Raises
+        ------
+        ValueError
+            If weights have not been calculated yet.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientSemivariance
+        >>> # es = EfficientSemivariance(mu, returns)
+        >>> # es.min_semivariance()
+        >>> # mu, semi, sortino = es.portfolio_performance(verbose=True)
         """
         mu = objective_functions.portfolio_return(
             self.weights, self.expected_returns, negative=False

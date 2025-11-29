@@ -1,6 +1,8 @@
 """
-The ``efficient_frontier`` submodule houses the EfficientFrontier class, which generates
-classical mean-variance optimal portfolios for a variety of objectives and constraints
+The ``efficient_frontier`` submodule houses the EfficientFrontier class.
+
+This submodule generates classical mean-variance optimal portfolios for a
+variety of objectives and constraints.
 """
 
 import warnings
@@ -14,42 +16,43 @@ from .. import base_optimizer, exceptions, objective_functions
 
 class EfficientFrontier(base_optimizer.BaseConvexOptimizer):
     """
-    An EfficientFrontier object (inheriting from BaseConvexOptimizer) contains multiple
-    optimization methods that can be called (corresponding to different objective
-    functions) with various parameters. Note: a new EfficientFrontier object should
-    be instantiated if you want to make any change to objectives/constraints/bounds/parameters.
+    Generate optimal portfolios along the mean-variance efficient frontier.
 
-    Instance variables:
+    An EfficientFrontier object (inheriting from BaseConvexOptimizer) contains
+    multiple optimization methods that can be called (corresponding to different
+    objective functions) with various parameters.
 
-    - Inputs:
+    Note: a new EfficientFrontier object should be instantiated if you want to
+    make any change to objectives/constraints/bounds/parameters.
 
-        - ``n_assets`` - int
-        - ``tickers`` - str list
-        - ``bounds`` - float tuple OR (float tuple) list
-        - ``cov_matrix`` - np.ndarray
-        - ``expected_returns`` - np.ndarray
-        - ``solver`` - str
-        - ``solver_options`` - {str: str} dict
+    Attributes
+    ----------
+    n_assets : int
+        Number of assets in the portfolio.
+    tickers : list
+        List of asset tickers/identifiers.
+    bounds : tuple or list
+        Weight bounds for each asset.
+    cov_matrix : np.ndarray
+        Covariance matrix of asset returns.
+    expected_returns : np.ndarray
+        Expected returns for each asset.
+    solver : str
+        CVXPY solver name.
+    solver_options : dict
+        Solver parameters.
+    weights : np.ndarray
+        Optimized portfolio weights.
 
-    - Output: ``weights`` - np.ndarray
-
-    Public methods:
-
-    - ``min_volatility()`` optimizes for minimum volatility
-    - ``max_sharpe()`` optimizes for maximal Sharpe ratio (a.k.a the tangency portfolio)
-    - ``max_quadratic_utility()`` maximises the quadratic utility, given some risk aversion.
-    - ``efficient_risk()`` maximises return for a given target risk
-    - ``efficient_return()`` minimises risk for a given target return
-
-    - ``add_objective()`` adds a (convex) objective to the optimization problem
-    - ``add_constraint()`` adds a constraint to the optimization problem
-    - ``convex_objective()`` solves for a generic convex objective with linear constraints
-
-    - ``portfolio_performance()`` calculates the expected return, volatility and Sharpe ratio for
-      the optimized portfolio.
-    - ``set_weights()`` creates self.weights (np.ndarray) from a weights dict
-    - ``clean_weights()`` rounds the weights and clips near-zeros.
-    - ``save_weights_to_file()`` saves the weights to csv, json, or txt.
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> from pypfopt import EfficientFrontier, expected_returns, risk_models
+    >>> # prices = pd.read_csv("stock_prices.csv", index_col="date", parse_dates=True)
+    >>> # mu = expected_returns.mean_historical_return(prices)
+    >>> # S = risk_models.sample_cov(prices)
+    >>> # ef = EfficientFrontier(mu, S)
+    >>> # weights = ef.max_sharpe()
     """
 
     def __init__(
@@ -62,24 +65,35 @@ class EfficientFrontier(base_optimizer.BaseConvexOptimizer):
         solver_options=None,
     ):
         """
-        :param expected_returns: expected returns for each asset. Can be None if
-                                optimising for volatility only (but not recommended).
-        :type expected_returns: pd.Series, list, np.ndarray
-        :param cov_matrix: covariance of returns for each asset. This **must** be
-                           positive semidefinite, otherwise optimization will fail.
-        :type cov_matrix: pd.DataFrame or np.array
-        :param weight_bounds: minimum and maximum weight of each asset OR single min/max pair
-                              if all identical, defaults to (0, 1). Must be changed to (-1, 1)
-                              for portfolios with shorting.
-        :type weight_bounds: tuple OR tuple list, optional
-        :param solver: name of solver. list available solvers with: `cvxpy.installed_solvers()`
-        :type solver: str
-        :param verbose: whether performance and debugging info should be printed, defaults to False
-        :type verbose: bool, optional
-        :param solver_options: parameters for the given solver
-        :type solver_options: dict, optional
-        :raises TypeError: if ``expected_returns`` is not a series, list or array
-        :raises TypeError: if ``cov_matrix`` is not a dataframe or array
+        Initialize the EfficientFrontier object.
+
+        Parameters
+        ----------
+        expected_returns : pd.Series, list, or np.ndarray
+            Expected returns for each asset. Can be None if optimising
+            for volatility only (but not recommended).
+        cov_matrix : pd.DataFrame or np.ndarray
+            Covariance of returns for each asset. This **must** be positive
+            semidefinite, otherwise optimization will fail.
+        weight_bounds : tuple or list, optional
+            Minimum and maximum weight of each asset OR single min/max pair
+            if all identical. Defaults to (0, 1). Must be changed to (-1, 1)
+            for portfolios with shorting.
+        solver : str, optional
+            Name of solver. List available solvers with ``cvxpy.installed_solvers()``.
+        verbose : bool, optional
+            Whether performance and debugging info should be printed.
+            Defaults to False.
+        solver_options : dict, optional
+            Parameters for the given solver.
+
+        Raises
+        ------
+        TypeError
+            If ``expected_returns`` is not a series, list or array.
+            If ``cov_matrix`` is not a dataframe or array.
+        ValueError
+            If ``cov_matrix`` dimensions don't match ``expected_returns``.
         """
         # Inputs
         self.cov_matrix = self._validate_cov_matrix(cov_matrix)
@@ -115,6 +129,24 @@ class EfficientFrontier(base_optimizer.BaseConvexOptimizer):
 
     @staticmethod
     def _validate_expected_returns(expected_returns):
+        """
+        Validate and convert expected returns to numpy array.
+
+        Parameters
+        ----------
+        expected_returns : pd.Series, list, np.ndarray, or None
+            Expected returns for each asset.
+
+        Returns
+        -------
+        np.ndarray or None
+            Validated expected returns as a numpy array, or None.
+
+        Raises
+        ------
+        TypeError
+            If expected_returns is not a series, list or array.
+        """
         if expected_returns is None:
             return None
         elif isinstance(expected_returns, pd.Series):
@@ -128,6 +160,26 @@ class EfficientFrontier(base_optimizer.BaseConvexOptimizer):
 
     @staticmethod
     def _validate_cov_matrix(cov_matrix):
+        """
+        Validate and convert covariance matrix to numpy array.
+
+        Parameters
+        ----------
+        cov_matrix : pd.DataFrame or np.ndarray
+            Covariance matrix of asset returns.
+
+        Returns
+        -------
+        np.ndarray
+            Validated covariance matrix as a numpy array.
+
+        Raises
+        ------
+        ValueError
+            If cov_matrix is None.
+        TypeError
+            If cov_matrix is not a dataframe or array.
+        """
         if cov_matrix is None:
             raise ValueError("cov_matrix must be provided")
         elif isinstance(cov_matrix, pd.DataFrame):
@@ -139,7 +191,26 @@ class EfficientFrontier(base_optimizer.BaseConvexOptimizer):
 
     def _validate_returns(self, returns):
         """
-        Helper method to validate daily returns (needed for some efficient frontiers)
+        Validate daily returns data.
+
+        Helper method to validate daily returns (needed for some efficient frontiers).
+
+        Parameters
+        ----------
+        returns : pd.DataFrame or np.ndarray
+            Historical daily returns.
+
+        Returns
+        -------
+        pd.DataFrame
+            Validated returns as a DataFrame with NaNs removed.
+
+        Raises
+        ------
+        TypeError
+            If returns is not a DataFrame or ndarray.
+        ValueError
+            If returns columns don't match expected returns.
         """
         if not isinstance(returns, (pd.DataFrame, np.ndarray)):
             raise TypeError("returns should be a pd.DataFrame or np.ndarray")
@@ -162,8 +233,15 @@ class EfficientFrontier(base_optimizer.BaseConvexOptimizer):
 
     def _make_weight_sum_constraint(self, is_market_neutral):
         """
+        Create the weight sum constraint.
+
         Helper method to make the weight sum constraint. If market neutral,
         validate the weights provided in the constructor.
+
+        Parameters
+        ----------
+        is_market_neutral : bool
+            Whether the portfolio should be market neutral.
         """
         if is_market_neutral:
             # Check and fix bounds
@@ -185,10 +263,20 @@ class EfficientFrontier(base_optimizer.BaseConvexOptimizer):
 
     def min_volatility(self):
         """
-        Minimise volatility.
+        Minimise portfolio volatility.
 
-        :return: asset weights for the volatility-minimising portfolio
-        :rtype: OrderedDict
+        Returns
+        -------
+        OrderedDict
+            Asset weights for the volatility-minimising portfolio.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientFrontier, expected_returns, risk_models
+        >>> # mu = expected_returns.mean_historical_return(prices)
+        >>> # S = risk_models.sample_cov(prices)
+        >>> # ef = EfficientFrontier(mu, S)
+        >>> # weights = ef.min_volatility()
         """
         self._objective = objective_functions.portfolio_variance(
             self._w, self.cov_matrix
@@ -201,10 +289,21 @@ class EfficientFrontier(base_optimizer.BaseConvexOptimizer):
 
     def _max_return(self, return_value=True):
         """
-        Helper method to maximise return. This should not be used to optimize a portfolio.
+        Maximise return (helper method).
 
-        :return: asset weights for the return-minimising portfolio
-        :rtype: OrderedDict
+        Helper method to maximise return. This should not be used to optimize
+        a portfolio directly.
+
+        Parameters
+        ----------
+        return_value : bool, optional
+            Whether to return the maximum return value. Defaults to True.
+
+        Returns
+        -------
+        float or OrderedDict
+            The maximum return value if return_value is True,
+            otherwise the portfolio weights.
         """
         if self.expected_returns is None:
             raise ValueError("no expected returns provided")
@@ -224,19 +323,40 @@ class EfficientFrontier(base_optimizer.BaseConvexOptimizer):
 
     def max_sharpe(self, risk_free_rate=0.0):
         """
-        Maximise the Sharpe Ratio. The result is also referred to as the tangency portfolio,
-        as it is the portfolio for which the capital market line is tangent to the efficient frontier.
+        Maximise the Sharpe Ratio.
 
-        This is a convex optimization problem after making a certain variable substitution. See
-        `Cornuejols and Tutuncu (2006) <http://web.math.ku.dk/~rolf/CT_FinOpt.pdf>`_ for more.
+        The result is also referred to as the tangency portfolio, as it is the
+        portfolio for which the capital market line is tangent to the efficient frontier.
 
-        :param risk_free_rate: risk-free rate of borrowing/lending, defaults to 0.0.
-                               The period of the risk-free rate should correspond to the
-                               frequency of expected returns.
-        :type risk_free_rate: float, optional
-        :raises ValueError: if ``risk_free_rate`` is non-numeric
-        :return: asset weights for the Sharpe-maximising portfolio
-        :rtype: OrderedDict
+        This is a convex optimization problem after making a certain variable
+        substitution. See `Cornuejols and Tutuncu (2006)
+        <http://web.math.ku.dk/~rolf/CT_FinOpt.pdf>`_ for more.
+
+        Parameters
+        ----------
+        risk_free_rate : float, optional
+            Risk-free rate of borrowing/lending. Defaults to 0.0.
+            The period of the risk-free rate should correspond to the
+            frequency of expected returns.
+
+        Returns
+        -------
+        OrderedDict
+            Asset weights for the Sharpe-maximising portfolio.
+
+        Raises
+        ------
+        ValueError
+            If ``risk_free_rate`` is non-numeric.
+            If no asset has expected return exceeding the risk-free rate.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientFrontier, expected_returns, risk_models
+        >>> # mu = expected_returns.mean_historical_return(prices)
+        >>> # S = risk_models.sample_cov(prices)
+        >>> # ef = EfficientFrontier(mu, S)
+        >>> # weights = ef.max_sharpe(risk_free_rate=0.02)
         """
         if not isinstance(risk_free_rate, (int, float)):
             raise ValueError("risk_free_rate should be numeric")
@@ -294,20 +414,39 @@ class EfficientFrontier(base_optimizer.BaseConvexOptimizer):
 
     def max_quadratic_utility(self, risk_aversion=1, market_neutral=False):
         r"""
-        Maximise the given quadratic utility, i.e:
+        Maximise the quadratic utility function.
+
+        The quadratic utility is defined as:
 
         .. math::
 
             \max_w w^T \mu - \frac \delta 2 w^T \Sigma w
 
-        :param risk_aversion: risk aversion parameter (must be greater than 0),
-                              defaults to 1
-        :type risk_aversion: positive float
-        :param market_neutral: whether the portfolio should be market neutral (weights sum to zero),
-                               defaults to False. Requires negative lower weight bound.
-        :param market_neutral: bool, optional
-        :return: asset weights for the maximum-utility portfolio
-        :rtype: OrderedDict
+        Parameters
+        ----------
+        risk_aversion : float, optional
+            Risk aversion parameter (must be greater than 0). Defaults to 1.
+        market_neutral : bool, optional
+            Whether the portfolio should be market neutral (weights sum to zero).
+            Defaults to False. Requires negative lower weight bound.
+
+        Returns
+        -------
+        OrderedDict
+            Asset weights for the maximum-utility portfolio.
+
+        Raises
+        ------
+        ValueError
+            If risk_aversion is not greater than zero.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientFrontier, expected_returns, risk_models
+        >>> # mu = expected_returns.mean_historical_return(prices)
+        >>> # S = risk_models.sample_cov(prices)
+        >>> # ef = EfficientFrontier(mu, S)
+        >>> # weights = ef.max_quadratic_utility(risk_aversion=2)
         """
         if risk_aversion <= 0:
             raise ValueError("risk aversion coefficient must be greater than zero")
@@ -331,19 +470,37 @@ class EfficientFrontier(base_optimizer.BaseConvexOptimizer):
 
     def efficient_risk(self, target_volatility, market_neutral=False):
         """
-        Maximise return for a target risk. The resulting portfolio will have a volatility
-        less than the target (but not guaranteed to be equal).
+        Maximise return for a target risk.
 
-        :param target_volatility: the desired maximum volatility of the resulting portfolio.
-        :type target_volatility: float
-        :param market_neutral: whether the portfolio should be market neutral (weights sum to zero),
-                               defaults to False. Requires negative lower weight bound.
-        :param market_neutral: bool, optional
-        :raises ValueError: if ``target_volatility`` is not a positive float
-        :raises ValueError: if no portfolio can be found with volatility equal to ``target_volatility``
-        :raises ValueError: if ``risk_free_rate`` is non-numeric
-        :return: asset weights for the efficient risk portfolio
-        :rtype: OrderedDict
+        The resulting portfolio will have a volatility less than the target
+        (but not guaranteed to be equal).
+
+        Parameters
+        ----------
+        target_volatility : float
+            The desired maximum volatility of the resulting portfolio.
+        market_neutral : bool, optional
+            Whether the portfolio should be market neutral (weights sum to zero).
+            Defaults to False. Requires negative lower weight bound.
+
+        Returns
+        -------
+        OrderedDict
+            Asset weights for the efficient risk portfolio.
+
+        Raises
+        ------
+        ValueError
+            If ``target_volatility`` is not a positive float.
+            If ``target_volatility`` is below the minimum possible volatility.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientFrontier, expected_returns, risk_models
+        >>> # mu = expected_returns.mean_historical_return(prices)
+        >>> # S = risk_models.sample_cov(prices)
+        >>> # ef = EfficientFrontier(mu, S)
+        >>> # weights = ef.efficient_risk(target_volatility=0.15)
         """
         if not isinstance(target_volatility, (float, int)) or target_volatility < 0:
             raise ValueError("target_volatility should be a positive float")
@@ -379,17 +536,37 @@ class EfficientFrontier(base_optimizer.BaseConvexOptimizer):
 
     def efficient_return(self, target_return, market_neutral=False):
         """
-        Calculate the 'Markowitz portfolio', minimising volatility for a given target return.
+        Minimise volatility for a given target return (Markowitz portfolio).
 
-        :param target_return: the desired return of the resulting portfolio.
-        :type target_return: float
-        :param market_neutral: whether the portfolio should be market neutral (weights sum to zero),
-                               defaults to False. Requires negative lower weight bound.
-        :type market_neutral: bool, optional
-        :raises ValueError: if ``target_return`` is not a positive float
-        :raises ValueError: if no portfolio can be found with return equal to ``target_return``
-        :return: asset weights for the Markowitz portfolio
-        :rtype: OrderedDict
+        Calculate the 'Markowitz portfolio', minimising volatility for a given
+        target return.
+
+        Parameters
+        ----------
+        target_return : float
+            The desired return of the resulting portfolio.
+        market_neutral : bool, optional
+            Whether the portfolio should be market neutral (weights sum to zero).
+            Defaults to False. Requires negative lower weight bound.
+
+        Returns
+        -------
+        OrderedDict
+            Asset weights for the Markowitz portfolio.
+
+        Raises
+        ------
+        ValueError
+            If ``target_return`` is not a float.
+            If ``target_return`` exceeds the maximum possible return.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientFrontier, expected_returns, risk_models
+        >>> # mu = expected_returns.mean_historical_return(prices)
+        >>> # S = risk_models.sample_cov(prices)
+        >>> # ef = EfficientFrontier(mu, S)
+        >>> # weights = ef.efficient_return(target_return=0.15)
         """
         if not isinstance(target_return, float):
             raise ValueError("target_return should be a float")
@@ -423,18 +600,39 @@ class EfficientFrontier(base_optimizer.BaseConvexOptimizer):
 
     def portfolio_performance(self, verbose=False, risk_free_rate=0.0):
         """
-        After optimising, calculate (and optionally print) the performance of the optimal
-        portfolio. Currently calculates expected return, volatility, and the Sharpe ratio.
+        Calculate the performance of the optimized portfolio.
 
-        :param verbose: whether performance should be printed, defaults to False
-        :type verbose: bool, optional
-        :param risk_free_rate: risk-free rate of borrowing/lending, defaults to 0.0.
-                               The period of the risk-free rate should correspond to the
-                               frequency of expected returns.
-        :type risk_free_rate: float, optional
-        :raises ValueError: if weights have not been calculated yet
-        :return: expected return, volatility, Sharpe ratio.
-        :rtype: (float, float, float)
+        After optimising, calculate (and optionally print) the performance of the
+        optimal portfolio. Currently calculates expected return, volatility, and
+        the Sharpe ratio.
+
+        Parameters
+        ----------
+        verbose : bool, optional
+            Whether performance should be printed. Defaults to False.
+        risk_free_rate : float, optional
+            Risk-free rate of borrowing/lending. Defaults to 0.0.
+            The period of the risk-free rate should correspond to the
+            frequency of expected returns.
+
+        Returns
+        -------
+        tuple
+            A tuple of (expected return, volatility, Sharpe ratio).
+
+        Raises
+        ------
+        ValueError
+            If weights have not been calculated yet.
+
+        Examples
+        --------
+        >>> from pypfopt import EfficientFrontier, expected_returns, risk_models
+        >>> # mu = expected_returns.mean_historical_return(prices)
+        >>> # S = risk_models.sample_cov(prices)
+        >>> # ef = EfficientFrontier(mu, S)
+        >>> # ef.max_sharpe()
+        >>> # mu, sigma, sharpe = ef.portfolio_performance(verbose=True)
         """
         if self._risk_free_rate is not None:
             if risk_free_rate != self._risk_free_rate:
@@ -454,6 +652,19 @@ class EfficientFrontier(base_optimizer.BaseConvexOptimizer):
         )
 
     def _validate_market_neutral(self, market_neutral: bool) -> None:
+        """
+        Validate market neutral parameter consistency.
+
+        Parameters
+        ----------
+        market_neutral : bool
+            Whether the portfolio should be market neutral.
+
+        Raises
+        ------
+        InstantiationError
+            If market_neutral differs from previously set value.
+        """
         if self._market_neutral != market_neutral:
             raise exceptions.InstantiationError(
                 "A new instance must be created when changing market_neutral."
