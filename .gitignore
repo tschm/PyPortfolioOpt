@@ -49,3 +49,4 @@ dist
 artifacts
 
 bin
+weights.csv
